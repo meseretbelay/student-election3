@@ -1,369 +1,523 @@
+// app/vote/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  loadCandidates,
-  loadUsers,
-  saveCandidates,
-  saveUsers,
-  logout,
-  resetElection,
-} from "../../lib/storage";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { auth } from "../../lib/firebase";
+import {
+  submitVote,
+  listenAuth,
+  logoutUser,
+} from "../../lib/firebaseFunctions";
+import { Candidate, AppUser } from "../../lib/types";
 import ResultsChart from "../../components/ResultsChart";
+import { collection, onSnapshot, Unsubscribe } from "firebase/firestore";
+import { db } from "../../lib/firebase";
 
 export default function VotePage() {
-  const [candidates, setCandidates] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
-  const [currentUser, setCurrentUser] = useState<any | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [totalVoters, setTotalVoters] = useState(0);
+  const [votedCount, setVotedCount] = useState(0);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [loading, setLoading] = useState(true);
 
+  const [unsubUsers, setUnsubUsers] = useState<Unsubscribe | null>(null);
+  const [unsubCandidates, setUnsubCandidates] = useState<Unsubscribe | null>(null);
+
+  // Auth listener
   useEffect(() => {
-    const storedUser = localStorage.getItem("currentUser");
-    if (!storedUser) {
-      router.push("/");
-      return;
-    }
+    const unsub = listenAuth((currentUser) => {
+      if (!currentUser) {
+        router.push("/login");
+        return;
+      }
+      if (currentUser.isAdmin) {
+        router.push("/admin/dashboard");
+        return;
+      }
+      setUser(currentUser);
+      setLoading(false);
+    });
+    return () => unsub();
+  }, [router]);
 
-    const userObj = JSON.parse(storedUser);
-    setCurrentUser(userObj);
+  // Real-time voter count
+  useEffect(() => {
+    if (loading || !user) return;
 
-    setCandidates(loadCandidates());
-    setUsers(loadUsers());
-  }, []);
-
-  if (!currentUser) return null;
-
-  const studentUsers = users.filter((u) => !u.isAdmin);
-  const totalVoters = studentUsers.length;
-  const votedCount = studentUsers.filter((u) => u.hasVoted).length;
-
-  const winner =
-    votedCount === totalVoters && totalVoters > 0
-      ? candidates.reduce((max, c) => (c.votes > max.votes ? c : max), candidates[0]).name
-      : "Waiting for all voters...";
-
-  function vote(id: number) {
-    if (!currentUser || currentUser.isAdmin) return;
-
-    const updatedUsers = users.map((u) =>
-      u.username === currentUser.username ? { ...u, hasVoted: true } : u
+    const unsub = onSnapshot(
+      collection(db, "users"),
+      (snapshot) => {
+        let total = 0;
+        let voted = 0;
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          if (!data.isAdmin) {
+            total++;
+            if (data.hasVoted) voted++;
+          }
+        });
+        setTotalVoters(total);
+        setVotedCount(voted);
+      },
+      (error) => {
+        if (error.code !== "permission-denied") console.error("Users snapshot error:", error);
+      }
     );
-    saveUsers(updatedUsers);
-    setUsers(updatedUsers);
+    setUnsubUsers(() => unsub);
+    return () => unsub();
+  }, [loading, user]);
 
-    const updatedCandidates = candidates.map((c) =>
-      c.id === id ? { ...c, votes: c.votes + 1 } : c
+  // Real-time candidates
+  useEffect(() => {
+    if (loading || !user) return;
+
+    const unsub = onSnapshot(
+      collection(db, "candidates"),
+      (snapshot) => {
+        const cands: Candidate[] = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        } as Candidate));
+        setCandidates(cands);
+      },
+      (error) => {
+        if (error.code !== "permission-denied") console.error("Candidates snapshot error:", error);
+      }
     );
-    saveCandidates(updatedCandidates);
-    setCandidates(updatedCandidates);
+    setUnsubCandidates(() => unsub);
+    return () => unsub();
+  }, [loading, user]);
 
-    alert("✅ Vote submitted!");
-  }
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      unsubUsers?.();
+      unsubCandidates?.();
+    };
+  }, [unsubUsers, unsubCandidates]);
 
-  function handleReset() {
-    if (!currentUser.isAdmin) return;
-
-    const adminPassword = "admin123";
-    const input = prompt("Enter admin password to reset:");
-
-    if (input === null) return;
-    if (input !== adminPassword) {
-      alert("❌ Incorrect Password!");
-      return;
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      unsubUsers?.();
+      unsubCandidates?.();
+      await logoutUser();
+      router.push("/login");
+    } catch (err) {
+      router.push("/login");
     }
+  };
 
-    if (!confirm("Are you sure?")) return;
+  const handleVote = async (candidateId: string) => {
+    if (!user || user.hasVoted) return;
 
-    resetElection();
-    setCandidates(loadCandidates());
-    setUsers(loadUsers());
-    alert("✅ Election has been reset!");
+    try {
+      await submitVote(user.uid, candidateId);
+      setUser((prev) => (prev ? { ...prev, hasVoted: true } : null));
+      setMessage({ type: "success", text: "Thank you for voting! 🎉 Your vote has been recorded." });
+      setTimeout(() => setMessage(null), 6000);
+    } catch (err: any) {
+      setMessage({ type: "error", text: err.message || "Voting failed. Please try again." });
+      setTimeout(() => setMessage(null), 6000);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="loadingPage">
+        <p>Loading voting page...</p>
+        <style jsx>{`
+          .loadingPage {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(270deg, #0f2027, #203a43, #2c5364);
+            color: #36d1dc;
+            font-size: 1.6rem;
+          }
+        `}</style>
+      </div>
+    );
   }
 
-  function handleLogout() {
-    logout();
-    router.push("/");
-  }
+  if (!user) return null;
 
-  const filteredCandidates = candidates.filter((c) =>
-    c.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const isElectionComplete = votedCount === totalVoters && totalVoters > 0;
+  const maxVotes = Math.max(...candidates.map((c) => c.votes || 0), 0);
+  const winners = candidates.filter((c) => (c.votes || 0) === maxVotes && maxVotes > 0);
 
   return (
-    <div
-      style={{
-        padding: "40px",
-        fontFamily: "Arial, sans-serif",
-        minHeight: "100vh",
-        background: "linear-gradient(to right, #ffffff, #e0e7ff)",
-      }}
-    >
-      {/* HEADER */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          position: "relative",
-          marginBottom: "40px",
-          gap: "30px",
-        }}
-      >
-        <img
-          src="/images/mau.png"
-          alt="MAU Logo"
-          width={200}
-          height={200}
-          style={{
-            borderRadius: "50%",
-            boxShadow: "0 6px 20px rgba(0,0,0,0.3)",
-            transition: "transform 0.3s ease",
-          }}
-          onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.08)")}
-          onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
-        />
-
-        <div style={{ textAlign: "left" }}>
-          <h1
-            style={{
-              fontSize: "3rem",
-              color: "#1e3a8a",
-              fontWeight: "bold",
-              marginBottom: "10px",
-            }}
-          >
-            Student Election
-          </h1>
-
-          <p style={{ fontSize: "1.5rem", color: "#374151", marginBottom: "5px" }}>
-            Welcome, <strong>{currentUser.username}</strong>
-            {currentUser.isAdmin && " (Admin)"}
-          </p>
-
-          <h2
-            style={{
-              fontSize: "2rem",
-              color: "#059669",
-              fontWeight: "bold",
-              marginBottom: "5px",
-            }}
-          >
-            Winner: {winner}
-          </h2>
-
-          <p style={{ fontSize: "1.2rem", color: "#6b7280" }}>
-            {votedCount} / {totalVoters} voted
-          </p>
+    <div className="page">
+      {/* Fixed Top Bar - Clean: Logo + Title + Logout */}
+      <div className="topBar">
+        <div className="topLeftLogo">
+          <img src="/images/mau.jpg" alt="MAU Logo" className="logoImg" />
         </div>
-
-        {/* BUTTONS */}
-        <div
-          style={{
-            position: "absolute",
-            right: "40px",
-            top: "50%",
-            transform: "translateY(-50%)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "20px",
-          }}
-        >
-          {currentUser.isAdmin && (
-            <button
-              onClick={handleReset}
-              style={{
-                background: "#ef5350",
-                color: "white",
-                padding: "16px 32px",
-                borderRadius: 10,
-                border: "none",
-                cursor: "pointer",
-                fontWeight: "bold",
-                fontSize: "1.2rem",
-                transition: "all 0.3s ease",
-              }}
-              onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.1)")}
-              onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
-            >
-              Reset Election
-            </button>
-          )}
-
-          <button
-            onClick={handleLogout}
-            style={{
-              background: "#757575",
-              color: "white",
-              padding: "16px 32px",
-              borderRadius: 10,
-              border: "none",
-              cursor: "pointer",
-              fontWeight: "bold",
-              fontSize: "1.2rem",
-              transition: "all 0.3s ease",
-            }}
-            onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.1)")}
-            onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
-          >
-            Logout
+        <h1 className="mainTitle">Vote Your Candidate</h1>
+        <div className="topButtons">
+          <button className="logoutBtn" onClick={handleLogout} disabled={loggingOut}>
+            🚪 {loggingOut ? "Logging out..." : "Logout"}
           </button>
         </div>
       </div>
 
-      {/* SEARCH INPUT */}
-      {!currentUser.isAdmin && (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            marginBottom: "30px",
-            position: "relative",
-          }}
-        >
-          {/* Icon slightly left inside input */}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#4f46e5"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{
-              position: "absolute",
-              left: "41%", // slightly left inside the input
-              top: "50%",
-              transform: "translate(-50%, -50%)",
-              width: "20px",
-              height: "20px",
-              pointerEvents: "none",
-            }}
-          >
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
+      {/* Glowing Horizontal Divider */}
+      <div className="dividerLine"></div>
 
-          <input
-            type="text"
-            placeholder="Search candidates..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              width: "300px",
-              padding: "10px 20px 10px 50px", // enough padding for icon
-              fontSize: "1rem",
-              borderRadius: "25px",
-              border: "2px solid #4f46e5",
-              outline: "none",
-              boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
-              transition: "all 0.3s ease",
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.border = "2px solid #1e3a8a";
-              e.currentTarget.style.boxShadow = "0 6px 12px rgba(30,58,138,0.2)";
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.border = "2px solid #4f46e5";
-              e.currentTarget.style.boxShadow = "0 4px 10px rgba(0,0,0,0.1)";
-            }}
-          />
+      {/* Welcome + Vote Status Box (non-static, like admin dashboard) */}
+      <div className="statusBox">
+        <div className="welcomeText">
+          Welcome, <strong className="blue">{user.username}</strong>
         </div>
-      )}
-
-      {/* CANDIDATES */}
-      {!currentUser.isAdmin && (
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "center",
-            rowGap: "60px",
-            columnGap: "80px",
-            marginTop: "20px",
-          }}
-        >
-          {filteredCandidates.map((c) => (
-            <div
-              key={c.id}
-              style={{
-                background: "#fff",
-                padding: "25px",
-                borderRadius: "20px",
-                border: "3px solid",
-                borderImageSlice: 1,
-                borderWidth: "3px",
-                borderImageSource: "linear-gradient(45deg, #ff6ec4, #7873f5, #42e695)",
-                boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
-                width: "260px",
-                textAlign: "center",
-                transition: "all 0.4s ease",
-              }}
-              onMouseOver={(e) =>
-                (e.currentTarget.style.transform = "scale(1.08) translateY(-5px)")
-              }
-              onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1) translateY(0)")}
-            >
-              <h3
-                style={{
-                  fontSize: "1.5rem",
-                  marginBottom: "10px",
-                  color: "#1a73e8",
-                  fontWeight: "bold",
-                }}
-              >
-                {c.name}
-              </h3>
-
-              <img
-                src={c.image}
-                width="150"
-                height="150"
-                style={{
-                  borderRadius: "50%",
-                  marginBottom: "10px",
-                  transition: "transform 0.3s ease",
-                }}
-                onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.12)")}
-                onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
-                alt={c.name}
-              />
-
-              <p style={{ fontSize: "0.95rem", marginBottom: "15px", color: "#555" }}>
-                {c.description}
-              </p>
-
-              <button
-                onClick={() => vote(c.id)}
-                disabled={users.find((u) => u.username === currentUser.username)?.hasVoted}
-                style={{
-                  background: "linear-gradient(45deg, #1a73e8, #4caf50)",
-                  color: "white",
-                  padding: "14px 28px",
-                  borderRadius: 12,
-                  border: "none",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                  fontSize: "1.05rem",
-                  transition: "all 0.3s ease",
-                }}
-                onMouseOver={(e) => (e.currentTarget.style.transform = "scale(1.1)")}
-                onMouseOut={(e) => (e.currentTarget.style.transform = "scale(1)")}
-              >
-                Vote
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* RESULTS CHART */}
-      <div style={{ marginTop: "50px", display: "flex", justifyContent: "center" }}>
-        <div style={{ width: "90%" }}>
-          <ResultsChart data={candidates} />
+        <div className="voteStatus">
+          {votedCount} / {totalVoters} students have voted
         </div>
       </div>
+
+      {/* Success/Error Message */}
+      {message && (
+        <div className={`message ${message.type}`}>
+          {message.text}
+        </div>
+      )}
+
+      {/* Candidates Grid */}
+      <div className="grid">
+        {candidates.map((c) => (
+          <motion.div
+            key={c.id}
+            className="cardWrap"
+            whileHover={{ scale: user.hasVoted ? 1 : 1.05 }}
+          >
+            <div className="card">
+              <img src={c.image} alt={c.name} className="candidateImg" />
+              <h2 className="blue">{c.name}</h2>
+              <p className="desc">{c.description}</p>
+              <p className="votes">
+                <strong>{c.votes || 0}</strong> vote{c.votes !== 1 ? "s" : ""}
+              </p>
+
+              {!user.hasVoted ? (
+                <button className="voteBtn" onClick={() => handleVote(c.id!)}>
+                  Vote
+                </button>
+              ) : (
+                <button className="voteBtn voted" disabled>
+                  Already Voted ✓
+                </button>
+              )}
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Live Results */}
+      {candidates.length > 0 && (
+        <div className="resultsSection">
+          <h2 className="chartTitle">Live Results</h2>
+          <div className="chartContainer">
+            <ResultsChart candidates={candidates} />
+          </div>
+
+          {isElectionComplete && (
+            <div className="winnerBox">
+              🏆 <strong>ELECTION COMPLETE!</strong> 🏆<br /><br />
+              Winner{winners.length > 1 ? "s (Tie)" : ""}:<br />
+              <strong className="winnerName">
+                {winners.map((w, i) => (
+                  <span key={w.id}>
+                    {w.name}{i < winners.length - 1 ? " & " : ""}
+                  </span>
+                ))}
+              </strong>
+              <br /><br />
+              with {maxVotes} vote{maxVotes !== 1 ? "s" : ""}!
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Waiting message */}
+      {!isElectionComplete && totalVoters > 0 && (
+        <div className="waitingMessage">
+          Waiting for all {totalVoters} students to vote...<br />
+          ({votedCount} have voted so far)
+        </div>
+      )}
+
+      <style jsx>{`
+        .page {
+          min-height: 100vh;
+          padding: 195px 20px 40px 20px;
+          background: linear-gradient(270deg, #0f2027, #203a43, #2c5364);
+          color: #fff;
+        }
+
+        /* Fixed Top Bar */
+        .topBar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 20px 40px;
+          background: rgba(255, 255, 255, 0.05);
+          backdrop-filter: blur(10px);
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          z-index: 1000;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .topLeftLogo {
+          flex-shrink: 0;
+        }
+
+        .logoImg {
+          width: 140px;
+          height: 140px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 5px solid #36d1dc;
+          box-shadow: 0 12px 40px rgba(54, 209, 220, 0.6);
+          transition: all 0.4s ease;
+        }
+
+        .logoImg:hover {
+          transform: scale(1.1);
+          box-shadow: 0 20px 50px rgba(54, 209, 220, 0.8);
+        }
+
+        .mainTitle {
+          font-size: 2.8rem;
+          font-weight: 900;
+          color: #36d1dc;
+          margin: 0;
+          text-align: center;
+          flex: 1;
+          text-shadow: 0 4px 15px rgba(54,209,220,0.4);
+        }
+
+        .topButtons {
+          display: flex;
+          gap: 15px;
+        }
+
+        .logoutBtn {
+          padding: 14px 28px;
+          border-radius: 14px;
+          border: none;
+          background: linear-gradient(135deg, #36d1dc, #5b86e5);
+          color: white;
+          font-weight: 700;
+          font-size: 1.1rem;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .logoutBtn:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .logoutBtn:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+
+        /* Glowing Divider Line */
+        .dividerLine {
+          height: 5px;
+          background: linear-gradient(90deg, transparent, #36d1dc, transparent);
+          margin: 0 40px 70px 40px;
+          border-radius: 3px;
+          box-shadow: 0 0 20px rgba(54, 209, 220, 0.8);
+        }
+
+        /* Welcome + Vote Status Box (same as admin dashboard) */
+        .statusBox {
+          text-align: center;
+          max-width: 600px;
+          margin: 0 auto 80px auto;
+          padding: 40px;
+          background: rgba(255,255,255,0.08);
+          border-radius: 24px;
+          backdrop-filter: blur(12px);
+          box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        }
+
+        .welcomeText {
+          font-size: 2.2rem;
+          margin-bottom: 15px;
+          font-weight: 600;
+        }
+
+        .welcomeText .blue {
+          color: #36d1dc;
+          font-weight: 800;
+        }
+
+        .voteStatus {
+          font-size: 2rem;
+          font-weight: 700;
+          color: #36d1dc;
+        }
+
+        /* Message */
+        .message {
+          text-align: center;
+          padding: 16px 32px;
+          border-radius: 16px;
+          font-weight: 700;
+          font-size: 1.3rem;
+          max-width: 700px;
+          margin: 0 auto 60px auto;
+        }
+
+        .message.success {
+          background: rgba(56, 161, 105, 0.3);
+          border: 2px solid #38a169;
+          color: #9ae6b4;
+        }
+
+        .message.error {
+          background: rgba(229, 62, 62, 0.3);
+          border: 2px solid #e53e3e;
+          color: #feb2b2;
+        }
+
+        /* Candidates Grid */
+        .grid {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 40px;
+          justify-content: center;
+          margin: 60px 0;
+        }
+
+        .cardWrap {
+          padding: 10px;
+          border-radius: 24px;
+          background: linear-gradient(135deg, #36d1dc, #5b86e5);
+        }
+
+        .card {
+          width: 340px;
+          min-height: 540px;
+          background: rgba(255,255,255,0.15);
+          border-radius: 20px;
+          padding: 30px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          backdrop-filter: blur(12px);
+        }
+
+        .candidateImg {
+          width: 150px;
+          height: 150px;
+          border-radius: 50%;
+          object-fit: cover;
+          margin-bottom: 25px;
+          border: 4px solid #36d1dc;
+          box-shadow: 0 10px 30px rgba(54,209,220,0.4);
+        }
+
+        .desc {
+          flex-grow: 1;
+          margin: 20px 0;
+          line-height: 1.6;
+          font-size: 1.1rem;
+        }
+
+        .votes {
+          font-size: 1.8rem;
+          color: #ffd700;
+          font-weight: 800;
+          margin: 25px 0;
+        }
+
+        .voteBtn {
+          width: 100%;
+          padding: 16px;
+          border: none;
+          border-radius: 16px;
+          font-weight: 700;
+          font-size: 1.3rem;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          background: linear-gradient(135deg, #1e90ff, #36d1dc);
+          color: white;
+        }
+
+        .voteBtn:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 15px 30px rgba(54,209,220,0.6);
+        }
+
+        .voteBtn.voted {
+          background: linear-gradient(135deg, #27ae60, #38a169);
+          cursor: not-allowed;
+        }
+
+        /* Results Section */
+        .resultsSection {
+          max-width: 1100px;
+          margin: 100px auto 60px;
+          padding: 50px;
+          background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+          border-radius: 28px;
+          backdrop-filter: blur(15px);
+          box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+          text-align: center;
+        }
+
+        .chartTitle {
+          font-size: 2.6rem;
+          margin-bottom: 40px;
+          color: #36d1dc;
+          font-weight: 700;
+        }
+
+        .chartContainer {
+          max-width: 900px;
+          margin: 0 auto;
+          height: 450px;
+        }
+
+        .winnerBox {
+          margin-top: 70px;
+          padding: 60px;
+          background: rgba(255,215,0,0.25);
+          border-radius: 30px;
+          font-size: 3rem;
+          font-weight: 900;
+          color: #ffd700;
+          line-height: 1.8;
+          border: 4px dashed #ffd700;
+          box-shadow: 0 20px 50px rgba(255,215,0,0.3);
+        }
+
+        .winnerName {
+          color: #36d1dc;
+          font-size: 3.4rem;
+        }
+
+        .waitingMessage {
+          text-align: center;
+          font-size: 1.8rem;
+          margin: 100px 0;
+          color: #ccc;
+          line-height: 1.8;
+        }
+      `}</style>
     </div>
   );
 }

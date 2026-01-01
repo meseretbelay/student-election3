@@ -1,53 +1,32 @@
-// app/register/page.tsx
+// app/admin/login/page.tsx
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { registerUser } from "../../lib/firebaseFunctions";
+import { loginUser } from "../../../lib/firebaseFunctions";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
-export default function RegisterPage() {
+export default function AdminLoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState("");
-  const [studentId, setStudentId] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    // Student ID validation: Must be MAU1400 to MAU1500
-    const idUpper = studentId.trim().toUpperCase();
-    if (!idUpper.startsWith("MAU")) {
-      setError("Invalid Student ID. Must start with 'MAU'.");
-      setLoading(false);
-      return;
-    }
-
-    const numPart = idUpper.substring(3);
-    if (!/^\d{4}$/.test(numPart)) {
-      setError("Invalid Student ID format. Must be MAU followed by 4 digits (e.g., MAU1400).");
-      setLoading(false);
-      return;
-    }
-
-    const idNumber = parseInt(numPart, 10);
-    if (idNumber < 1400 || idNumber > 1500) {
-      setError("You are not a valid MAU student. Student ID must be between MAU1400 and MAU1500.");
-      setLoading(false);
-      return;
-    }
-
     try {
-      await registerUser(username.trim(), idUpper, email.trim(), password.trim());
-      router.push("/login");
+      const user = await loginUser(email.trim(), password.trim());
+      if (!user.isAdmin) {
+        throw new Error("You do not have admin privileges.");
+      }
+      router.replace("/admin/dashboard");
     } catch (err: any) {
-      setError(err.message || "Registration failed");
+      setError(err.message || "Login failed.");
     } finally {
       setLoading(false);
     }
@@ -61,37 +40,21 @@ export default function RegisterPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
       >
-        <form className="card" onSubmit={handleRegister}>
-          {/* Circular Logo with Border */}
+        <form className="card" onSubmit={handleLogin}>
+          {/* Circular Logo */}
           <img
             src="/images/mau.jpg"
             alt="MAU Logo"
             className="logo"
           />
 
-          <h1>Student Election Register</h1>
+          <h1>Admin Login</h1>
 
           {error && <p className="error">{error}</p>}
 
           <input
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            disabled={loading}
-          />
-
-          <input
-            placeholder="Student ID (e.g., MAU1425)"
-            value={studentId}
-            onChange={(e) => setStudentId(e.target.value)}
-            required
-            disabled={loading}
-          />
-
-          <input
             type="email"
-            placeholder="Email"
+            placeholder="Admin Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -108,15 +71,11 @@ export default function RegisterPage() {
           />
 
           <button type="submit" disabled={loading}>
-            {loading ? "Registering..." : "Register"}
+            {loading ? "Logging in..." : "Login"}
           </button>
 
-          <p className="link">
-            Already have an account? <Link href="/login">Login</Link>
-          </p>
-
-          <p className="note">
-            Only MAU students with ID from <strong>MAU1400</strong> to <strong>MAU1500</strong> can register.
+          <p className="back">
+            <Link href="/login">← Back to Student Login</Link>
           </p>
         </form>
       </motion.div>
@@ -131,6 +90,7 @@ export default function RegisterPage() {
           background-size: 600% 600%;
           animation: gradient 15s ease infinite;
           padding: 20px;
+          box-sizing: border-box;
         }
 
         @keyframes gradient {
@@ -142,11 +102,12 @@ export default function RegisterPage() {
         .cardWrapper {
           width: 100%;
           max-width: 600px;
+          padding: 0 16px;
         }
 
         .card {
           background: rgba(255, 255, 255, 0.12);
-          padding: 50px;
+          padding: 40px 30px;
           border-radius: 25px;
           display: flex;
           flex-direction: column;
@@ -157,10 +118,10 @@ export default function RegisterPage() {
           box-shadow: 0 35px 70px rgba(0, 0, 0, 0.5);
         }
 
-        /* Circular Logo - Matching Login & Admin Pages */
+        /* Responsive Logo */
         .logo {
-          width: 130px;
-          height: 130px;
+          width: 110px;
+          height: 110px;
           border-radius: 50%;
           object-fit: cover;
           border: 4px solid #36d1dc;
@@ -168,23 +129,44 @@ export default function RegisterPage() {
           box-shadow: 0 8px 25px rgba(54, 209, 220, 0.3);
         }
 
+        @media (min-width: 480px) {
+          .logo {
+            width: 130px;
+            height: 130px;
+          }
+        }
+
         h1 {
           margin: 0 0 20px 0;
-          font-size: 2.2rem;
+          font-size: 1.9rem;
           font-weight: 700;
+          text-align: center;
+        }
+
+        @media (min-width: 480px) {
+          h1 {
+            font-size: 2.2rem;
+          }
         }
 
         input,
         button {
           width: 100%;
-          max-width: 500px;
-          height: 55px;
+          height: 56px;
           padding: 0 20px;
           border-radius: 22px;
           font-size: 1.1rem;
           border: none;
           outline: none;
           box-sizing: border-box;
+        }
+
+        @media (max-width: 380px) {
+          input,
+          button {
+            height: 52px;
+            font-size: 1rem;
+          }
         }
 
         input {
@@ -194,59 +176,65 @@ export default function RegisterPage() {
 
         input::placeholder {
           color: #f0f0f0;
+          font-size: 1rem;
         }
 
         button {
           background: linear-gradient(135deg, #36d1dc, #5b86e5);
           color: #fff;
           font-weight: 700;
+          font-size: 1.2rem;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all 0.3s ease;
+          margin-top: 10px;
         }
 
         button:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+          transform: translateY(-3px);
+          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
         }
 
         button:disabled {
           opacity: 0.6;
           cursor: not-allowed;
+          transform: none;
         }
 
         .error {
           color: #ff6b6b;
           font-size: 1rem;
           text-align: center;
-          margin: 0;
+          margin: 10px 0 0 0;
+          padding: 12px;
+          background: rgba(255, 107, 107, 0.15);
+          border-radius: 12px;
+          width: 100%;
         }
 
-        .link {
-          margin-top: 15px;
-          font-size: 1rem;
+        .back {
+          margin-top: 20px;
+          font-size: 1.05rem;
           text-align: center;
         }
 
-        .link a {
+        .back a {
           color: #36d1dc;
           font-weight: 600;
           text-decoration: none;
         }
 
-        .link a:hover {
+        .back a:hover {
           text-decoration: underline;
         }
 
-        .note {
-          font-size: 0.95rem;
-          text-align: center;
-          color: #ccc;
-          margin-top: 10px;
-          line-height: 1.4;
-        }
-
-        .note strong {
-          color: #36d1dc;
+        /* Extra small screens */
+        @media (max-width: 340px) {
+          .card {
+            padding: 30px 20px;
+          }
+          h1 {
+            font-size: 1.8rem;
+          }
         }
       `}</style>
     </div>

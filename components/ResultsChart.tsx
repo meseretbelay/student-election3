@@ -1,65 +1,72 @@
+// components/ResultsChart.tsx
 "use client";
 
 import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
-  BarElement,
   CategoryScale,
   LinearScale,
+  BarElement,
+  Title,
   Tooltip,
   Legend,
 } from "chart.js";
+import { Candidate } from "../lib/types";
 
-ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-export default function ResultsChart({ data }: any) {
-  const barColors = [
-    "rgba(99, 102, 241, 0.9)",   // Indigo
-    "rgba(16, 185, 129, 0.9)",   // Emerald
-    "rgba(239, 68, 68, 0.9)",    // Red
-    "rgba(234, 179, 8, 0.9)",    // Yellow
-    "rgba(59, 130, 246, 0.9)",   // Blue
-  ];
+const COLORS = [
+  "#36d1dc", "#ff6b6b", "#ffd700", "#5b86e5", "#ff7f50",
+  "#7b68ee", "#00fa9a", "#ff69b4", "#ffa500", "#1e90ff",
+  "#ff00ff", "#00ffff", "#98fb98", "#ff6347", "#4682b4"
+];
+
+type Props = {
+  candidates: Candidate[];
+};
+
+export default function ResultsChart({ candidates }: Props) {
+  const sortedCandidates = [...candidates].sort((a, b) => b.votes - a.votes);
+
+  const data = {
+    labels: sortedCandidates.map((c) => c.name),
+    datasets: [
+      {
+        label: "Votes",
+        data: sortedCandidates.map((c) => c.votes || 0),
+        backgroundColor: sortedCandidates.map((_, i) => COLORS[i % COLORS.length]),
+        borderRadius: 8,
+        borderSkipped: false,
+      },
+    ],
+  };
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (context: any) => `${context.raw} vote${context.raw !== 1 ? "s" : ""}`,
+        },
+      },
+    },
+    scales: {
+      x: {
+        ticks: { color: "#fff", font: { size: 14 } },
+        grid: { color: "rgba(255,255,255,0.1)" },
+      },
+      y: {
+        ticks: { color: "#fff", beginAtZero: true, stepSize: 1 },
+        grid: { color: "rgba(255,255,255,0.1)" },
+      },
+    },
+  };
 
   return (
-    <div
-      style={{
-        width: "90%",
-        maxWidth: "900px",
-        margin: "40px auto",
-        display: "flex",
-        justifyContent: "center",
-      }}
-    >
-      {/* ▶️ Increased height here */}
-      <div style={{ width: "100%", height: "400px" }}>
-        <Bar
-          data={{
-            labels: data.map((c: any) => c.name),
-            datasets: [
-              {
-                label: "Votes",
-                data: data.map((c: any) => c.votes),
-                backgroundColor: data.map(
-                  (_: any, i: number) => barColors[i % barColors.length]
-                ),
-                borderRadius: 10,
-              },
-            ],
-          }}
-          options={{
-            responsive: true,
-            maintainAspectRatio: false, // important for height change
-            animation: {
-              duration: 1500,
-              easing: "easeOutQuart",
-            },
-            scales: {
-              y: { beginAtZero: true },
-            },
-          }}
-        />
-      </div>
+    <div style={{ height: "400px", width: "100%" }}>
+      <Bar data={data} options={options} />
     </div>
   );
 }

@@ -1,53 +1,32 @@
-// app/register/page.tsx
+// app/login/page.tsx
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { registerUser } from "../../lib/firebaseFunctions";
+import { loginUser } from "../../lib/firebaseFunctions";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
-export default function RegisterPage() {
+export default function LoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState("");
-  const [studentId, setStudentId] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-
-    // Student ID validation: Must be MAU1400 to MAU1500
-    const idUpper = studentId.trim().toUpperCase();
-    if (!idUpper.startsWith("MAU")) {
-      setError("Invalid Student ID. Must start with 'MAU'.");
-      setLoading(false);
-      return;
-    }
-
-    const numPart = idUpper.substring(3);
-    if (!/^\d{4}$/.test(numPart)) {
-      setError("Invalid Student ID format. Must be MAU followed by 4 digits (e.g., MAU1400).");
-      setLoading(false);
-      return;
-    }
-
-    const idNumber = parseInt(numPart, 10);
-    if (idNumber < 1400 || idNumber > 1500) {
-      setError("You are not a valid MAU student. Student ID must be between MAU1400 and MAU1500.");
-      setLoading(false);
-      return;
-    }
-
     try {
-      await registerUser(username.trim(), idUpper, email.trim(), password.trim());
-      router.push("/login");
+      const user = await loginUser(email.trim(), password.trim());
+      if (user.isAdmin) {
+        router.push("/admin/dashboard");
+      } else {
+        router.push("/vote");
+      }
     } catch (err: any) {
-      setError(err.message || "Registration failed");
+      setError(err.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -61,7 +40,7 @@ export default function RegisterPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
       >
-        <form className="card" onSubmit={handleRegister}>
+        <form className="card" onSubmit={handleLogin}>
           {/* Circular Logo with Border */}
           <img
             src="/images/mau.jpg"
@@ -69,25 +48,9 @@ export default function RegisterPage() {
             className="logo"
           />
 
-          <h1>Student Election Register</h1>
+          <h1>Student Election Login</h1>
 
           {error && <p className="error">{error}</p>}
-
-          <input
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            disabled={loading}
-          />
-
-          <input
-            placeholder="Student ID (e.g., MAU1425)"
-            value={studentId}
-            onChange={(e) => setStudentId(e.target.value)}
-            required
-            disabled={loading}
-          />
 
           <input
             type="email"
@@ -108,15 +71,15 @@ export default function RegisterPage() {
           />
 
           <button type="submit" disabled={loading}>
-            {loading ? "Registering..." : "Register"}
+            {loading ? "Logging in..." : "Login"}
           </button>
 
           <p className="link">
-            Already have an account? <Link href="/login">Login</Link>
+            Don't have an account? <Link href="/register">Register</Link>
           </p>
 
-          <p className="note">
-            Only MAU students with ID from <strong>MAU1400</strong> to <strong>MAU1500</strong> can register.
+          <p className="link" style={{ marginTop: "20px" }}>
+            <Link href="/admin/login">→ Admin Login</Link>
           </p>
         </form>
       </motion.div>
@@ -157,7 +120,7 @@ export default function RegisterPage() {
           box-shadow: 0 35px 70px rgba(0, 0, 0, 0.5);
         }
 
-        /* Circular Logo - Matching Login & Admin Pages */
+        /* Circular Logo - Same as Admin Page */
         .logo {
           width: 130px;
           height: 130px;
@@ -183,13 +146,13 @@ export default function RegisterPage() {
           border-radius: 22px;
           font-size: 1.1rem;
           border: none;
-          outline: none;
           box-sizing: border-box;
         }
 
         input {
           background: rgba(255, 255, 255, 0.25);
           color: #fff;
+          outline: none;
         }
 
         input::placeholder {
@@ -216,15 +179,15 @@ export default function RegisterPage() {
 
         .error {
           color: #ff6b6b;
-          font-size: 1rem;
           text-align: center;
+          font-size: 1rem;
           margin: 0;
         }
 
         .link {
-          margin-top: 15px;
           font-size: 1rem;
           text-align: center;
+          margin: 0;
         }
 
         .link a {
@@ -235,18 +198,6 @@ export default function RegisterPage() {
 
         .link a:hover {
           text-decoration: underline;
-        }
-
-        .note {
-          font-size: 0.95rem;
-          text-align: center;
-          color: #ccc;
-          margin-top: 10px;
-          line-height: 1.4;
-        }
-
-        .note strong {
-          color: #36d1dc;
         }
       `}</style>
     </div>
