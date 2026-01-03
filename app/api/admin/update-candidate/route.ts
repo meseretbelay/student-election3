@@ -1,26 +1,44 @@
 // app/api/admin/update-candidate/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { adminDb, adminAuth } from "../../../../lib/firebaseAdmin";
+import { getAdminDb, getAdminAuth } from "../../../../lib/firebaseAdmin";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
     const { id, name, description, image, idToken } = await req.json();
-    if (!id || !idToken) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
-    const decoded = await adminAuth.verifyIdToken(idToken);
-    const userDoc = await adminDb.collection("users").doc(decoded.uid).get();
-    if (!userDoc.exists || !userDoc.data()?.isAdmin) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    if (!id || !idToken) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    await adminDb.collection("candidates").doc(id).update({
-      name: name?.trim(),
-      description: description?.trim(),
-      image: image?.trim(),
-    });
+    const auth = getAdminAuth();
+    const decoded = await auth.verifyIdToken(idToken);
+
+    const db = getAdminDb();
+    const userDoc = await db.collection("users").doc(decoded.uid).get();
+
+    if (!userDoc.exists || !userDoc.data()?.isAdmin) {
+      return NextResponse.json({ error: "Unauthorized: Admin only" }, { status: 403 });
+    }
+
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name.trim();
+    if (description !== undefined) updateData.description = description.trim();
+    if (image !== undefined) updateData.image = image.trim();
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: "No changes provided" }, { status: 400 });
+    }
+
+    await db.collection("candidates").doc(id).update(updateData);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Update candidate error:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to update candidate" },
+      { status: 500 }
+    );
   }
 }

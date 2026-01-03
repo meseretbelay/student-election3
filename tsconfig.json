@@ -1,28 +1,29 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
+    "target": "ESNext", // modern JS target
     "lib": [
       "dom",
       "dom.iterable",
       "esnext"
-    ],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": false,
-    "noEmit": true,
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "baseUrl": ".",
-    "incremental": true,
-    "esModuleInterop": true,
+    ], // include browser and ES features
+    "allowJs": true, // allow JS files
+    "skipLibCheck": true, // skip type checking of node_modules
+    "strict": true, // enable strict type checking
+    "noEmit": true, // do not emit JS files (Next handles it)
+    "module": "ESNext", // ES module system
+    "moduleResolution": "node", // resolve modules like Node
+    "resolveJsonModule": true, // allow importing JSON
+    "isolatedModules": true, // needed for Next.js
+    "jsx": "preserve", // important: enables JSX.Element typing
+    "baseUrl": ".", // base directory
+    "incremental": true, // incremental compilation
+    "esModuleInterop": true, // interop for CommonJS modules
+    "forceConsistentCasingInFileNames": true, // enforce consistent file names
     "plugins": [
       {
         "name": "next"
       }
-    ]
+    ] // Next.js plugin
   },
   "include": [
     "**/*.ts",

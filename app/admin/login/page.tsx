@@ -5,7 +5,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { loginUser } from "../../../lib/firebaseFunctions";
 import Link from "next/link";
-import { motion } from "framer-motion";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -34,207 +33,154 @@ export default function AdminLoginPage() {
 
   return (
     <div className="page">
-      <motion.div
-        className="cardWrapper"
-        initial={{ opacity: 0, y: 50 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-      >
-        <form className="card" onSubmit={handleLogin}>
-          {/* Circular Logo */}
-          <img
-            src="/images/mau.jpg"
-            alt="MAU Logo"
-            className="logo"
-          />
+      <form className="card" onSubmit={handleLogin}>
+        {/* Logo */}
+        <img
+          src="/images/mau.jpg"
+          alt="MAU Logo"
+          className="logo"
+        />
 
-          <h1>Admin Login</h1>
+        <h1>Admin Login</h1>
 
-          {error && <p className="error">{error}</p>}
+        {error && <p className="error">{error}</p>}
 
-          <input
-            type="email"
-            placeholder="Admin Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            disabled={loading}
-          />
+        {/* Input Fields */}
+        <input
+          type="email"
+          placeholder="Admin Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          disabled={loading}
+        />
 
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            disabled={loading}
-          />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          disabled={loading}
+        />
 
-          <button type="submit" disabled={loading}>
-            {loading ? "Logging in..." : "Login"}
-          </button>
+        {/* Login Button - Same size as inputs */}
+        <button type="submit" disabled={loading} className="loginBtn">
+          {loading ? "Logging in..." : "Login"}
+        </button>
 
-          <p className="back">
-            <Link href="/login">← Back to Student Login</Link>
-          </p>
-        </form>
-      </motion.div>
+        {/* Back Link */}
+        <p className="back">
+          <Link href="/login">← Back to Student Login</Link>
+        </p>
+      </form>
 
       <style jsx>{`
         .page {
           min-height: 100vh;
           display: flex;
-          justify-content: center;
           align-items: center;
-          background: linear-gradient(270deg, #0f2027, #203a43, #2c5364);
-          background-size: 600% 600%;
-          animation: gradient 15s ease infinite;
+          justify-content: center;
+          background: #1c3c53;
           padding: 20px;
-          box-sizing: border-box;
         }
 
-        @keyframes gradient {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-
-        .cardWrapper {
-          width: 100%;
-          max-width: 600px;
-          padding: 0 16px;
-        }
-
+        /* Narrower card - decreased width */
         .card {
+          width: 380px;                    /* Reduced from 420px → more compact */
+          max-width: 95vw;
           background: rgba(255, 255, 255, 0.12);
-          padding: 40px 30px;
-          border-radius: 25px;
+          padding: 45px 40px;
+          border-radius: 22px;
+          color: #fff;
           display: flex;
           flex-direction: column;
           gap: 20px;
           align-items: center;
-          color: #fff;
-          backdrop-filter: blur(25px);
-          box-shadow: 0 35px 70px rgba(0, 0, 0, 0.5);
+          backdrop-filter: blur(12px);
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         }
 
-        /* Responsive Logo */
         .logo {
           width: 110px;
           height: 110px;
           border-radius: 50%;
           object-fit: cover;
           border: 4px solid #36d1dc;
-          margin-bottom: 15px;
-          box-shadow: 0 8px 25px rgba(54, 209, 220, 0.3);
-        }
-
-        @media (min-width: 480px) {
-          .logo {
-            width: 130px;
-            height: 130px;
-          }
+          margin-bottom: 10px;
         }
 
         h1 {
-          margin: 0 0 20px 0;
-          font-size: 1.9rem;
+          font-size: 26px;
           font-weight: 700;
-          text-align: center;
+          margin: 0;
         }
 
-        @media (min-width: 480px) {
-          h1 {
-            font-size: 2.2rem;
-          }
-        }
-
-        input,
-        button {
+        /* Input fields - full width of card */
+        input {
           width: 100%;
-          height: 56px;
-          padding: 0 20px;
-          border-radius: 22px;
-          font-size: 1.1rem;
+          height: 52px;
+          padding: 0 18px;
+          border-radius: 12px;
           border: none;
+          background: rgba(255, 255, 255, 0.2);
+          color: white;
+          font-size: 16px;
           outline: none;
           box-sizing: border-box;
         }
 
-        @media (max-width: 380px) {
-          input,
-          button {
-            height: 52px;
-            font-size: 1rem;
-          }
-        }
-
-        input {
-          background: rgba(255, 255, 255, 0.25);
-          color: #fff;
-        }
-
         input::placeholder {
-          color: #f0f0f0;
-          font-size: 1rem;
+          color: #ddd;
         }
 
-        button {
+        /* Button - EXACT same size as inputs */
+        .loginBtn {
+          width: 100%;
+          height: 52px;
+          border-radius: 12px;
+          border: none;
           background: linear-gradient(135deg, #36d1dc, #5b86e5);
-          color: #fff;
+          color: white;
+          font-size: 16px;
           font-weight: 700;
-          font-size: 1.2rem;
           cursor: pointer;
-          transition: all 0.3s ease;
-          margin-top: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
         }
 
-        button:hover:not(:disabled) {
-          transform: translateY(-3px);
-          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+        .loginBtn:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 20px rgba(54, 209, 220, 0.4);
         }
 
-        button:disabled {
-          opacity: 0.6;
+        .loginBtn:disabled {
+          opacity: 0.7;
           cursor: not-allowed;
-          transform: none;
         }
 
         .error {
           color: #ff6b6b;
-          font-size: 1rem;
           text-align: center;
-          margin: 10px 0 0 0;
-          padding: 12px;
-          background: rgba(255, 107, 107, 0.15);
-          border-radius: 12px;
-          width: 100%;
+          font-size: 14px;
+          margin: 0;
         }
 
         .back {
-          margin-top: 20px;
-          font-size: 1.05rem;
-          text-align: center;
+          margin-top: 10px;
+          font-size: 14px;
         }
 
         .back a {
-          color: #36d1dc;
-          font-weight: 600;
+          color: #cdefff;
           text-decoration: none;
+          font-weight: 500;
         }
 
         .back a:hover {
           text-decoration: underline;
-        }
-
-        /* Extra small screens */
-        @media (max-width: 340px) {
-          .card {
-            padding: 30px 20px;
-          }
-          h1 {
-            font-size: 1.8rem;
-          }
         }
       `}</style>
     </div>
