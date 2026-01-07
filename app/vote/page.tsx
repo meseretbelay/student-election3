@@ -254,8 +254,7 @@ export default function VotePage() {
       <style jsx>{`
         .page {
           min-height: 100vh;
-          padding: 195px 20px 40px 20px;
-          background: linear-gradient(270deg, #0f2027, #203a43, #2c5364);
+          padding: 230px 20px 40px 20px;          background: linear-gradient(270deg, #0f2027, #203a43, #2c5364);
           color: #fff;
         }
 
@@ -333,12 +332,17 @@ export default function VotePage() {
 
         /* Glowing Divider Line */
         .dividerLine {
+          position: fixed;
+          top: 195px;          /* exactly below topBar */
+          left: 40px;
+          right: 40px;
           height: 5px;
           background: linear-gradient(90deg, transparent, #36d1dc, transparent);
-          margin: 0 40px 70px 40px;
           border-radius: 3px;
           box-shadow: 0 0 20px rgba(54, 209, 220, 0.8);
+          z-index: 999;
         }
+        
 
         /* Welcome + Vote Status Box (same as admin dashboard) */
         .statusBox {
