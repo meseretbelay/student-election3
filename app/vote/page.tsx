@@ -521,6 +521,145 @@ export default function VotePage() {
           color: #ccc;
           line-height: 1.8;
         }
+        /* ===== MOBILE RESPONSIVE ===== */
+        @media (max-width: 480px) {
+          .page {
+            padding: 280px 10px 20px 10px;
+          }
+
+          .topBar {
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+          }
+
+          .logoImg {
+            width: 90px;
+            height: 90px;
+          }
+
+          .mainTitle {
+            font-size: 1.8rem;
+          }
+
+          .logoutBtn {
+            padding: 10px 20px;
+            font-size: 0.95rem;
+          }
+
+          .grid {
+            gap: 20px;
+            flex-direction: column;
+            margin: 40px 0;
+          }
+
+          .card {
+            width: 90%;
+            min-height: auto;
+            padding: 20px;
+          }
+
+          .candidateImg {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 20px;
+          }
+
+          .desc {
+            font-size: 1rem;
+            margin: 15px 0;
+          }
+
+          .votes {
+            font-size: 1.4rem;
+          }
+
+          .voteBtn {
+            font-size: 1.1rem;
+            padding: 12px;
+          }
+
+          .statusBox {
+            padding: 25px;
+          }
+
+          .welcomeText {
+            font-size: 1.6rem;
+          }
+
+          .voteStatus {
+            font-size: 1.4rem;
+          }
+
+          .message {
+            font-size: 1.1rem;
+            padding: 12px 20px;
+          }
+
+          .resultsSection {
+            padding: 30px 15px;
+          }
+
+          .chartTitle {
+            font-size: 1.8rem;
+          }
+
+          .winnerBox {
+            font-size: 1.8rem;
+            padding: 30px;
+          }
+
+          .winnerName {
+            font-size: 2rem;
+          }
+
+          .waitingMessage {
+            font-size: 1.3rem;
+            margin: 60px 0;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .topBar {
+            padding: 15px 20px;
+          }
+
+          .logoImg {
+            width: 110px;
+            height: 110px;
+          }
+
+          .mainTitle {
+            font-size: 2rem;
+          }
+
+          .logoutBtn {
+            font-size: 1rem;
+            padding: 12px 22px;
+          }
+
+          .grid {
+            gap: 25px;
+          }
+
+          .card {
+            width: 80%;
+          }
+
+          .candidateImg {
+            width: 130px;
+            height: 130px;
+          }
+
+          .desc {
+            font-size: 1.05rem;
+          }
+
+          .votes {
+            font-size: 1.6rem;
+          }
+        
       `}</style>
     </div>
   );

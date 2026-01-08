@@ -41,15 +41,8 @@ export default function LoginPage() {
         transition={{ duration: 0.6 }}
       >
         <form className="card" onSubmit={handleLogin}>
-          {/* Circular Logo with Border */}
-          <img
-            src="/images/mau.jpg"
-            alt="MAU Logo"
-            className="logo"
-          />
-
+          <img src="/images/mau.jpg" alt="MAU Logo" className="logo" />
           <h1>Student Election Login</h1>
-
           {error && <p className="error">{error}</p>}
 
           <input
@@ -60,7 +53,6 @@ export default function LoginPage() {
             required
             disabled={loading}
           />
-
           <input
             type="password"
             placeholder="Password"
@@ -120,7 +112,6 @@ export default function LoginPage() {
           box-shadow: 0 35px 70px rgba(0, 0, 0, 0.5);
         }
 
-        /* Circular Logo - Same as Admin Page */
         .logo {
           width: 130px;
           height: 130px;
@@ -198,6 +189,51 @@ export default function LoginPage() {
 
         .link a:hover {
           text-decoration: underline;
+        }
+
+        /* ===== MOBILE RESPONSIVE ===== */
+        @media (max-width: 480px) {
+          .card {
+            padding: 35px 20px;
+            border-radius: 20px;
+            gap: 15px;
+          }
+
+          .logo {
+            width: 100px;
+            height: 100px;
+          }
+
+          h1 {
+            font-size: 1.8rem;
+          }
+
+          input,
+          button {
+            height: 50px;
+            font-size: 1rem;
+            border-radius: 18px;
+          }
+
+          .link {
+            font-size: 0.9rem;
+          }
+        }
+
+        /* ===== TABLET RESPONSIVE ===== */
+        @media (max-width: 768px) {
+          .card {
+            padding: 40px 25px;
+          }
+
+          h1 {
+            font-size: 2rem;
+          }
+
+          input,
+          button {
+            font-size: 1.05rem;
+          }
         }
       `}</style>
     </div>

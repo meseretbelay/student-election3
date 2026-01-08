@@ -21,7 +21,6 @@ export default function RegisterPage() {
     setError("");
     setLoading(true);
 
-    // Student ID validation: Must be MAU1400 to MAU1500
     const idUpper = studentId.trim().toUpperCase();
     if (!idUpper.startsWith("MAU")) {
       setError("Invalid Student ID. Must start with 'MAU'.");
@@ -62,13 +61,7 @@ export default function RegisterPage() {
         transition={{ duration: 0.6 }}
       >
         <form className="card" onSubmit={handleRegister}>
-          {/* Circular Logo with Border */}
-          <img
-            src="/images/mau.jpg"
-            alt="MAU Logo"
-            className="logo"
-          />
-
+          <img src="/images/mau.jpg" alt="MAU Logo" className="logo" />
           <h1>Student Election Register</h1>
 
           {error && <p className="error">{error}</p>}
@@ -157,7 +150,6 @@ export default function RegisterPage() {
           box-shadow: 0 35px 70px rgba(0, 0, 0, 0.5);
         }
 
-        /* Circular Logo - Matching Login & Admin Pages */
         .logo {
           width: 130px;
           height: 130px;
@@ -247,6 +239,51 @@ export default function RegisterPage() {
 
         .note strong {
           color: #36d1dc;
+        }
+
+        /* ===== MOBILE RESPONSIVE ===== */
+        @media (max-width: 480px) {
+          .card {
+            padding: 35px 20px;
+            border-radius: 20px;
+            gap: 15px;
+          }
+
+          .logo {
+            width: 100px;
+            height: 100px;
+          }
+
+          h1 {
+            font-size: 1.8rem;
+          }
+
+          input,
+          button {
+            height: 50px;
+            font-size: 1rem;
+            border-radius: 18px;
+          }
+
+          .link, .note {
+            font-size: 0.85rem;
+          }
+        }
+
+        /* ===== TABLET RESPONSIVE ===== */
+        @media (max-width: 768px) {
+          .card {
+            padding: 40px 25px;
+          }
+
+          h1 {
+            font-size: 2rem;
+          }
+
+          input,
+          button {
+            font-size: 1.05rem;
+          }
         }
       `}</style>
     </div>

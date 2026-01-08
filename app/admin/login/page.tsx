@@ -34,18 +34,10 @@ export default function AdminLoginPage() {
   return (
     <div className="page">
       <form className="card" onSubmit={handleLogin}>
-        {/* Logo */}
-        <img
-          src="/images/mau.jpg"
-          alt="MAU Logo"
-          className="logo"
-        />
-
+        <img src="/images/mau.jpg" alt="MAU Logo" className="logo" />
         <h1>Admin Login</h1>
-
         {error && <p className="error">{error}</p>}
 
-        {/* Input Fields */}
         <input
           type="email"
           placeholder="Admin Email"
@@ -54,7 +46,6 @@ export default function AdminLoginPage() {
           required
           disabled={loading}
         />
-
         <input
           type="password"
           placeholder="Password"
@@ -64,12 +55,10 @@ export default function AdminLoginPage() {
           disabled={loading}
         />
 
-        {/* Login Button - Same size as inputs */}
         <button type="submit" disabled={loading} className="loginBtn">
           {loading ? "Logging in..." : "Login"}
         </button>
 
-        {/* Back Link */}
         <p className="back">
           <Link href="/login">← Back to Student Login</Link>
         </p>
@@ -85,9 +74,8 @@ export default function AdminLoginPage() {
           padding: 20px;
         }
 
-        /* Narrower card - decreased width */
         .card {
-          width: 380px;                    /* Reduced from 420px → more compact */
+          width: 380px;
           max-width: 95vw;
           background: rgba(255, 255, 255, 0.12);
           padding: 45px 40px;
@@ -116,7 +104,6 @@ export default function AdminLoginPage() {
           margin: 0;
         }
 
-        /* Input fields - full width of card */
         input {
           width: 100%;
           height: 52px;
@@ -134,7 +121,6 @@ export default function AdminLoginPage() {
           color: #ddd;
         }
 
-        /* Button - EXACT same size as inputs */
         .loginBtn {
           width: 100%;
           height: 52px;
@@ -181,6 +167,33 @@ export default function AdminLoginPage() {
 
         .back a:hover {
           text-decoration: underline;
+        }
+
+        /* ===== MOBILE RESPONSIVE ===== */
+        @media (max-width: 480px) {
+          .card {
+            padding: 35px 20px;
+            width: 95%;
+            gap: 15px;
+          }
+
+          h1 {
+            font-size: 22px;
+          }
+
+          .logo {
+            width: 90px;
+            height: 90px;
+          }
+
+          input, .loginBtn {
+            height: 48px;
+            font-size: 15px;
+          }
+
+          .back {
+            font-size: 13px;
+          }
         }
       `}</style>
     </div>
