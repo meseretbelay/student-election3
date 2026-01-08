@@ -8,8 +8,7 @@ import { listenAuth, logoutUser } from "../../../lib/firebaseFunctions";
 import { Candidate, AppUser } from "../../../lib/types";
 import ResultsChart from "../../../components/ResultsChart";
 import { collection, onSnapshot } from "firebase/firestore";
-import AdminPasswordModal from "components/AdminPasswordModel";
-
+import AdminPasswordModel from "components/AdminPasswordModel";
 export default function AdminDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<AppUser | null>(null);
@@ -279,7 +278,7 @@ export default function AdminDashboard() {
 
       {/* Password Confirmation Modal */}
       {showPasswordModal && (
-        <AdminPasswordModal
+        <AdminPasswordModel
           onConfirm={handlePasswordConfirm}
           onClose={() => {
             setShowPasswordModal(false);
