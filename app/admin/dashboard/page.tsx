@@ -228,18 +228,32 @@ export default function AdminDashboard() {
       {/* ================= CANDIDATES GRID ================= */}
       <div className="grid">
         {candidates.map((c) => (
-          <motion.div key={c.id} className="cardWrap" whileHover={{ scale: 1.05 }}>
-            <div className="card">
-              <img src={c.image} alt={c.name} className="candidateImg" />
-              <h2 className="blue">{c.name}</h2>
-              <p className="desc">{c.description}</p>
-              <p className="votes"><strong>{c.votes || 0}</strong> vote{c.votes !== 1 ? "s" : ""}</p>
-              <div className="actions">
-                <button className="editBtn" onClick={() => openEdit(c)}>✏️ Edit</button>
-                <button className="deleteBtn" onClick={() => openDelete(c.id!)}>🗑️ Delete</button>
-              </div>
-            </div>
-          </motion.div>
+          <motion.div
+  key={c.id}
+  className="cardWrap"
+  whileHover={{
+    scale: 1.05,                       // lift the card
+    rotateX: -3,                        // subtle tilt
+    rotateY: 3,                         // subtle tilt
+    boxShadow: "0 25px 50px rgba(54, 209, 220, 0.6)", // glowing shadow
+  }}
+  whileTap={{ scale: 0.97 }}           // press feedback
+  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+>
+  <div className="card">
+    <img src={c.image} alt={c.name} className="candidateImg" />
+    <h2 className="blue">{c.name}</h2>
+    <p className="desc">{c.description}</p>
+    <p className="votes">
+      <strong>{c.votes || 0}</strong> vote{c.votes !== 1 ? "s" : ""}
+    </p>
+    <div className="actions">
+      <button className="editBtn" onClick={() => openEdit(c)}>✏️ Edit</button>
+      <button className="deleteBtn" onClick={() => openDelete(c.id!)}>🗑️ Delete</button>
+    </div>
+  </div>
+</motion.div>
+
         ))}
       </div>
 
@@ -268,7 +282,7 @@ export default function AdminDashboard() {
       <style jsx>{`
         /* ================= ORIGINAL DESKTOP STYLES ================= */
         .page { min-height: 100vh; padding: 230px 20px 40px; background: linear-gradient(270deg,#0f2027,#203a43,#2c5364); color:#fff; }
-        .topBar { display:flex; align-items:center; justify-content:space-between; padding:20px 40px; background: rgba(255,255,255,0.05); backdrop-filter:blur(10px); position:fixed; top:0; left:0; right:0; z-index:1000; box-shadow:0 4px 20px rgba(0,0,0,0.3); }
+        .topBar { display:flex; align-items:center; justify-content:space-between; padding:5px 30px; background: rgba(255,255,255,0.05); backdrop-filter:blur(10px); position:fixed; top:0; left:0; right:0; z-index:1000; box-shadow:0 4px 20px rgba(0,0,0,0.3); }
         .topLeftLogo{flex-shrink:0;}
         .logoImg{width:140px;height:140px;border-radius:50%;object-fit:cover;border:5px solid #36d1dc;box-shadow:0 12px 40px rgba(54,209,220,0.6);transition: all 0.4s ease;}
         .logoImg:hover{transform:scale(1.1);box-shadow:0 20px 50px rgba(54,209,220,0.8);}
@@ -278,7 +292,7 @@ export default function AdminDashboard() {
         .resetBtn{background:linear-gradient(135deg,#ff4444,#cc0000);color:white;}
         .logoutBtn{background:linear-gradient(135deg,#36d1dc,#5b86e5);color:white;}
         .topButtons button:hover{transform:translateY(-3px);box-shadow:0 10px 25px rgba(0,0,0,0.5);}
-        .dividerLine{position:fixed;top:195px;left:40px;right:40px;height:5px;background:linear-gradient(90deg,transparent,#36d1dc,transparent);border-radius:3px;box-shadow:0 0 20px rgba(54,209,220,0.8);z-index:999;}
+        .dividerLine{position:fixed;top:150px;left:40px;right:40px;height:5px;background:linear-gradient(90deg,transparent,#36d1dc,transparent);border-radius:3px;box-shadow:0 0 20px rgba(54,209,220,0.8);z-index:999;}
         .statusBox{text-align:center;max-width:600px;margin:0 auto 80px auto;padding:40px;background:rgba(255,255,255,0.08);border-radius:24px;backdrop-filter:blur(12px);box-shadow:0 15px 40px rgba(0,0,0,0.4);}
         .welcomeText{font-size:2.2rem;margin-bottom:15px;font-weight:600;}
         .welcomeText .blue{color:#36d1dc;font-weight:800;}
@@ -292,8 +306,18 @@ export default function AdminDashboard() {
         .addBtn:hover{transform:translateY(-4px);box-shadow:0 15px 30px rgba(54,209,220,0.6);}
         .grid{display:flex;flex-wrap:wrap;gap:40px;justify-content:center;margin:60px 0;}
         .cardWrap{padding:10px;border-radius:24px;background:linear-gradient(135deg,#36d1dc,#5b86e5);}
-        .card{width:340px;min-height:540px;background:rgba(255,255,255,0.15);border-radius:20px;padding:30px;display:flex;flex-direction:column;align-items:center;text-align:center;backdrop-filter:blur(12px);}
-        .candidateImg{width:150px;height:150px;border-radius:50%;object-fit:cover;margin-bottom:25px;border:4px solid #36d1dc;box-shadow:0 10px 30px rgba(54,209,220,0.4);}
+        .card{
+          width:340px;
+          background:rgba(255,255,255,0.15);
+          border-radius:20px;
+          padding:16px;
+          display:flex;
+          flex-direction:column;
+          align-items:center;
+          text-align:center;
+          backdrop-filter:blur(12px);
+        }
+                .candidateImg{width:150px;height:150px;border-radius:50%;object-fit:cover;margin-bottom:25px;border:4px solid #36d1dc;box-shadow:0 10px 30px rgba(54,209,220,0.4);}
         .desc{flex-grow:1;margin:20px 0;line-height:1.6;font-size:1.1rem;}
         .votes{font-size:1.8rem;color:#ffd700;font-weight:800;margin:25px 0;}
         .actions{display:flex;gap:16px;width:100%;margin-top:25px;}

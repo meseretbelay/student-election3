@@ -123,7 +123,7 @@ export default function RegisterPage() {
           background: linear-gradient(270deg, #0f2027, #203a43, #2c5364);
           background-size: 600% 600%;
           animation: gradient 15s ease infinite;
-          padding: 20px;
+          padding: 0px;
         }
 
         @keyframes gradient {

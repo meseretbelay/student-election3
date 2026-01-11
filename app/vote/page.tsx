@@ -1,10 +1,9 @@
-// app/vote/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { auth } from "../../lib/firebase";
+import { auth, db } from "../../lib/firebase";
 import {
   submitVote,
   listenAuth,
@@ -13,7 +12,6 @@ import {
 import { Candidate, AppUser } from "../../lib/types";
 import ResultsChart from "../../components/ResultsChart";
 import { collection, onSnapshot, Unsubscribe } from "firebase/firestore";
-import { db } from "../../lib/firebase";
 
 export default function VotePage() {
   const router = useRouter();
@@ -24,6 +22,8 @@ export default function VotePage() {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [unsubUsers, setUnsubUsers] = useState<Unsubscribe | null>(null);
   const [unsubCandidates, setUnsubCandidates] = useState<Unsubscribe | null>(null);
@@ -152,9 +152,14 @@ export default function VotePage() {
   const maxVotes = Math.max(...candidates.map((c) => c.votes || 0), 0);
   const winners = candidates.filter((c) => (c.votes || 0) === maxVotes && maxVotes > 0);
 
+  // Filter candidates by search query
+  const filteredCandidates = candidates.filter((c) =>
+    c.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="page">
-      {/* Fixed Top Bar - Clean: Logo + Title + Logout */}
+      {/* Fixed Top Bar */}
       <div className="topBar">
         <div className="topLeftLogo">
           <img src="/images/mau.jpg" alt="MAU Logo" className="logoImg" />
@@ -167,10 +172,9 @@ export default function VotePage() {
         </div>
       </div>
 
-      {/* Glowing Horizontal Divider */}
       <div className="dividerLine"></div>
 
-      {/* Welcome + Vote Status Box (non-static, like admin dashboard) */}
+      {/* Status Box */}
       <div className="statusBox">
         <div className="welcomeText">
           Welcome, <strong className="blue">{user.username}</strong>
@@ -178,22 +182,35 @@ export default function VotePage() {
         <div className="voteStatus">
           {votedCount} / {totalVoters} students have voted
         </div>
+
+        {/* Search Input */}
+        <div className="searchWrapper">
+          <span className="searchIcon">🔍</span>
+          <input
+            type="text"
+            placeholder="Search candidates..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="searchInput"
+          />
+        </div>
       </div>
 
-      {/* Success/Error Message */}
-      {message && (
-        <div className={`message ${message.type}`}>
-          {message.text}
-        </div>
-      )}
+      {/* Message */}
+      {message && <div className={`message ${message.type}`}>{message.text}</div>}
 
       {/* Candidates Grid */}
       <div className="grid">
-        {candidates.map((c) => (
+        {filteredCandidates.map((c) => (
           <motion.div
             key={c.id}
             className="cardWrap"
-            whileHover={{ scale: user.hasVoted ? 1 : 1.05 }}
+            whileHover={{
+              scale: 1.06,
+              rotateZ: 1,
+              boxShadow: "0 25px 50px rgba(54, 209, 220, 0.6)",
+            }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
           >
             <div className="card">
               <img src={c.image} alt={c.name} className="candidateImg" />
@@ -202,7 +219,6 @@ export default function VotePage() {
               <p className="votes">
                 <strong>{c.votes || 0}</strong> vote{c.votes !== 1 ? "s" : ""}
               </p>
-
               {!user.hasVoted ? (
                 <button className="voteBtn" onClick={() => handleVote(c.id!)}>
                   Vote
@@ -232,18 +248,19 @@ export default function VotePage() {
               <strong className="winnerName">
                 {winners.map((w, i) => (
                   <span key={w.id}>
-                    {w.name}{i < winners.length - 1 ? " & " : ""}
+                    {w.name}
+                    {i < winners.length - 1 ? " & " : ""}
                   </span>
                 ))}
               </strong>
-              <br /><br />
+              <br />
+              <br />
               with {maxVotes} vote{maxVotes !== 1 ? "s" : ""}!
             </div>
           )}
         </div>
       )}
 
-      {/* Waiting message */}
       {!isElectionComplete && totalVoters > 0 && (
         <div className="waitingMessage">
           Waiting for all {totalVoters} students to vote...<br />
@@ -254,16 +271,16 @@ export default function VotePage() {
       <style jsx>{`
         .page {
           min-height: 100vh;
-          padding: 230px 20px 40px 20px;          background: linear-gradient(270deg, #0f2027, #203a43, #2c5364);
+          padding: 230px 20px 40px;
+          background: linear-gradient(270deg, #0f2027, #203a43, #2c5364);
           color: #fff;
         }
 
-        /* Fixed Top Bar */
         .topBar {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 20px 40px;
+          padding: 5px 30px;
           background: rgba(255, 255, 255, 0.05);
           backdrop-filter: blur(10px);
           position: fixed;
@@ -272,10 +289,6 @@ export default function VotePage() {
           right: 0;
           z-index: 1000;
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-        }
-
-        .topLeftLogo {
-          flex-shrink: 0;
         }
 
         .logoImg {
@@ -288,11 +301,6 @@ export default function VotePage() {
           transition: all 0.4s ease;
         }
 
-        .logoImg:hover {
-          transform: scale(1.1);
-          box-shadow: 0 20px 50px rgba(54, 209, 220, 0.8);
-        }
-
         .mainTitle {
           font-size: 2.8rem;
           font-weight: 900;
@@ -301,11 +309,6 @@ export default function VotePage() {
           text-align: center;
           flex: 1;
           text-shadow: 0 4px 15px rgba(54,209,220,0.4);
-        }
-
-        .topButtons {
-          display: flex;
-          gap: 15px;
         }
 
         .logoutBtn {
@@ -320,20 +323,9 @@ export default function VotePage() {
           transition: all 0.3s ease;
         }
 
-        .logoutBtn:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-        }
-
-        .logoutBtn:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
-        }
-
-        /* Glowing Divider Line */
         .dividerLine {
           position: fixed;
-          top: 195px;          /* exactly below topBar */
+          top: 150px;
           left: 40px;
           right: 40px;
           height: 5px;
@@ -342,9 +334,7 @@ export default function VotePage() {
           box-shadow: 0 0 20px rgba(54, 209, 220, 0.8);
           z-index: 999;
         }
-        
 
-        /* Welcome + Vote Status Box (same as admin dashboard) */
         .statusBox {
           text-align: center;
           max-width: 600px;
@@ -373,27 +363,45 @@ export default function VotePage() {
           color: #36d1dc;
         }
 
-        /* Message */
-        .message {
-          text-align: center;
-          padding: 16px 32px;
-          border-radius: 16px;
-          font-weight: 700;
-          font-size: 1.3rem;
-          max-width: 700px;
-          margin: 0 auto 60px auto;
+        /* Search Box */
+        .searchWrapper {
+          position: relative;
+          margin-top: 25px;
+          width: 80%;
+          max-width: 400px;
+          margin-left: auto;
+          margin-right: auto;
         }
 
-        .message.success {
-          background: rgba(56, 161, 105, 0.3);
-          border: 2px solid #38a169;
-          color: #9ae6b4;
+        .searchIcon {
+          position: absolute;
+          top: 50%;
+          left: 14px;
+          transform: translateY(-50%);
+          font-size: 1.2rem;
+          color: #ccc;
+          pointer-events: none;
         }
 
-        .message.error {
-          background: rgba(229, 62, 62, 0.3);
-          border: 2px solid #e53e3e;
-          color: #feb2b2;
+        .searchInput {
+          width: 100%;
+          padding: 14px 20px 14px 40px;
+          border-radius: 14px;
+          border: none;
+          font-size: 1.2rem;
+          background: rgba(255,255,255,0.2);
+          color: #fff;
+          transition: all 0.3s ease;
+        }
+
+        .searchInput::placeholder {
+          color: #ccc;
+        }
+
+        .searchInput:focus {
+          outline: none;
+          background: rgba(255,255,255,0.3);
+          box-shadow: 0 5px 20px rgba(54,209,220,0.5);
         }
 
         /* Candidates Grid */
@@ -413,10 +421,9 @@ export default function VotePage() {
 
         .card {
           width: 340px;
-          min-height: 540px;
           background: rgba(255,255,255,0.15);
           border-radius: 20px;
-          padding: 30px;
+          padding: 16px;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -471,6 +478,29 @@ export default function VotePage() {
           cursor: not-allowed;
         }
 
+        /* Message */
+        .message {
+          text-align: center;
+          padding: 16px 32px;
+          border-radius: 16px;
+          font-weight: 700;
+          font-size: 1.3rem;
+          max-width: 700px;
+          margin: 0 auto 60px auto;
+        }
+
+        .message.success {
+          background: rgba(56, 161, 105, 0.3);
+          border: 2px solid #38a169;
+          color: #9ae6b4;
+        }
+
+        .message.error {
+          background: rgba(229, 62, 62, 0.3);
+          border: 2px solid #e53e3e;
+          color: #feb2b2;
+        }
+
         /* Results Section */
         .resultsSection {
           max-width: 1100px;
@@ -521,145 +551,27 @@ export default function VotePage() {
           color: #ccc;
           line-height: 1.8;
         }
-        /* ===== MOBILE RESPONSIVE ===== */
+
         @media (max-width: 480px) {
-          .page {
-            padding: 280px 10px 20px 10px;
-          }
-
-          .topBar {
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            padding: 15px;
-          }
-
-          .logoImg {
-            width: 90px;
-            height: 90px;
-          }
-
-          .mainTitle {
-            font-size: 1.8rem;
-          }
-
-          .logoutBtn {
-            padding: 10px 20px;
-            font-size: 0.95rem;
-          }
-
-          .grid {
-            gap: 20px;
-            flex-direction: column;
-            margin: 40px 0;
-          }
-
-          .card {
-            width: 90%;
-            min-height: auto;
-            padding: 20px;
-          }
-
-          .candidateImg {
-            width: 120px;
-            height: 120px;
-            margin-bottom: 20px;
-          }
-
-          .desc {
-            font-size: 1rem;
-            margin: 15px 0;
-          }
-
-          .votes {
-            font-size: 1.4rem;
-          }
-
-          .voteBtn {
-            font-size: 1.1rem;
-            padding: 12px;
-          }
-
-          .statusBox {
-            padding: 25px;
-          }
-
-          .welcomeText {
-            font-size: 1.6rem;
-          }
-
-          .voteStatus {
-            font-size: 1.4rem;
-          }
-
-          .message {
-            font-size: 1.1rem;
-            padding: 12px 20px;
-          }
-
-          .resultsSection {
-            padding: 30px 15px;
-          }
-
-          .chartTitle {
-            font-size: 1.8rem;
-          }
-
-          .winnerBox {
-            font-size: 1.8rem;
-            padding: 30px;
-          }
-
-          .winnerName {
-            font-size: 2rem;
-          }
-
-          .waitingMessage {
-            font-size: 1.3rem;
-            margin: 60px 0;
-          }
+          .page { padding: 280px 10px 20px 10px; }
+          .mainTitle { font-size: 1.8rem; }
+          .logoutBtn { padding: 10px 20px; font-size: 0.95rem; }
+          .grid { gap: 20px; flex-direction: column; margin: 40px 0; }
+          .card { width: 90%; padding: 20px; }
+          .candidateImg { width: 120px; height: 120px; margin-bottom: 20px; }
+          .desc { font-size: 1rem; margin: 15px 0; }
+          .votes { font-size: 1.4rem; }
+          .voteBtn { font-size: 1.1rem; padding: 12px; }
+          .statusBox { padding: 25px; }
+          .welcomeText { font-size: 1.6rem; }
+          .voteStatus { font-size: 1.4rem; }
+          .searchInput { font-size: 1rem; padding: 12px 20px 12px 40px; }
+          .resultsSection { padding: 30px 15px; }
+          .chartTitle { font-size: 1.8rem; }
+          .winnerBox { font-size: 1.8rem; padding: 30px; }
+          .winnerName { font-size: 2rem; }
+          .waitingMessage { font-size: 1.3rem; margin: 60px 0; }
         }
-
-        @media (max-width: 768px) {
-          .topBar {
-            padding: 15px 20px;
-          }
-
-          .logoImg {
-            width: 110px;
-            height: 110px;
-          }
-
-          .mainTitle {
-            font-size: 2rem;
-          }
-
-          .logoutBtn {
-            font-size: 1rem;
-            padding: 12px 22px;
-          }
-
-          .grid {
-            gap: 25px;
-          }
-
-          .card {
-            width: 80%;
-          }
-
-          .candidateImg {
-            width: 130px;
-            height: 130px;
-          }
-
-          .desc {
-            font-size: 1.05rem;
-          }
-
-          .votes {
-            font-size: 1.6rem;
-          }
-        
       `}</style>
     </div>
   );

@@ -71,7 +71,8 @@ export default function AdminLoginPage() {
           align-items: center;
           justify-content: center;
           background: #1c3c53;
-          padding: 20px;
+          padding: 0px;
+          margin:0px;
         }
 
         .card {

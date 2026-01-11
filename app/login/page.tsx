@@ -1,4 +1,3 @@
-// app/login/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -18,6 +17,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
+
     try {
       const user = await loginUser(email.trim(), password.trim());
       if (user.isAdmin) {
@@ -42,7 +42,9 @@ export default function LoginPage() {
       >
         <form className="card" onSubmit={handleLogin}>
           <img src="/images/mau.jpg" alt="MAU Logo" className="logo" />
+
           <h1>Student Election Login</h1>
+
           {error && <p className="error">{error}</p>}
 
           <input
@@ -53,6 +55,7 @@ export default function LoginPage() {
             required
             disabled={loading}
           />
+
           <input
             type="password"
             placeholder="Password"
@@ -77,21 +80,29 @@ export default function LoginPage() {
       </motion.div>
 
       <style jsx>{`
+        /* ================= ROOT FIX ================= */
         .page {
           min-height: 100vh;
+          width: 100%;
+          overflow: hidden;
           display: flex;
           justify-content: center;
           align-items: center;
           background: linear-gradient(270deg, #0f2027, #203a43, #2c5364);
           background-size: 600% 600%;
           animation: gradient 15s ease infinite;
-          padding: 20px;
         }
 
         @keyframes gradient {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
+          0% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+          100% {
+            background-position: 0% 50%;
+          }
         }
 
         .cardWrapper {
@@ -126,6 +137,7 @@ export default function LoginPage() {
           margin: 0 0 20px 0;
           font-size: 2.2rem;
           font-weight: 700;
+          text-align: center;
         }
 
         input,
@@ -137,7 +149,6 @@ export default function LoginPage() {
           border-radius: 22px;
           font-size: 1.1rem;
           border: none;
-          box-sizing: border-box;
         }
 
         input {
@@ -191,7 +202,7 @@ export default function LoginPage() {
           text-decoration: underline;
         }
 
-        /* ===== MOBILE RESPONSIVE ===== */
+        /* ========== MOBILE FIX (IMPORTANT) ========== */
         @media (max-width: 480px) {
           .card {
             padding: 35px 20px;
@@ -220,19 +231,10 @@ export default function LoginPage() {
           }
         }
 
-        /* ===== TABLET RESPONSIVE ===== */
-        @media (max-width: 768px) {
-          .card {
-            padding: 40px 25px;
-          }
-
-          h1 {
-            font-size: 2rem;
-          }
-
-          input,
-          button {
-            font-size: 1.05rem;
+        /* ===== SAFARI / IOS FIX ===== */
+        @supports (-webkit-touch-callout: none) {
+          .page {
+            min-height: -webkit-fill-available;
           }
         }
       `}</style>
