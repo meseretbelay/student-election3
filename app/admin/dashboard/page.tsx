@@ -281,7 +281,7 @@ export default function AdminDashboard() {
       {/* ================= STYLES ================= */}
       <style jsx>{`
         /* ================= ORIGINAL DESKTOP STYLES ================= */
-        .page { min-height: 100vh; padding: 230px 20px 40px; background: linear-gradient(270deg,#0f2027,#203a43,#2c5364); color:#fff; }
+        .page { min-height: 100dvh; padding: 230px 20px 40px; background: linear-gradient(270deg,#0f2027,#203a43,#2c5364); color:#fff; }
         .topBar { display:flex; align-items:center; justify-content:space-between; padding:5px 30px; background: rgba(255,255,255,0.05); backdrop-filter:blur(10px); position:fixed; top:0; left:0; right:0; z-index:1000; box-shadow:0 4px 20px rgba(0,0,0,0.3); }
         .topLeftLogo{flex-shrink:0;}
         .logoImg{width:140px;height:140px;border-radius:50%;object-fit:cover;border:5px solid #36d1dc;box-shadow:0 12px 40px rgba(54,209,220,0.6);transition: all 0.4s ease;}
@@ -332,18 +332,143 @@ export default function AdminDashboard() {
         .winnerBox{margin-top:70px;padding:60px;background:rgba(255,215,0,0.25);border-radius:30px;font-size:3rem;font-weight:900;color:#ffd700;line-height:1.8;border:4px dashed #ffd700;box-shadow:0 20px 50px rgba(255,215,0,0.3);}
         .winnerName{color:#36d1dc;font-size:3.4rem;}
 
-        /* ================= MOBILE RESPONSIVE ================= */
-        @media(max-width:768px){
-          .page{padding:180px 15px 40px;}
-          .mainTitle{font-size:2rem;padding-left:80px;}
-          .topBar{flex-direction:column;gap:10px;}
-          .grid{flex-direction:column;align-items:center;}
-          .card{width:90%;min-height:auto;padding:20px;}
-          .resultsSection{padding:30px;}
-          .chartContainer{height:350px;}
-          .winnerBox{font-size:2rem;padding:30px;}
-          .winnerName{font-size:2.4rem;}
+        /* ================= MOBILE FRIENDLY ================= */
+        @media (max-width: 768px) {
+        
+          /* ===== PAGE FIX ===== */
+          .page {
+            padding: 30px 12px 40px;
+            min-height: 100vh;
+          }
+        
+          /* ===== TOP BAR FIX ===== */
+          .topBar {
+            position: relative;       /* IMPORTANT */
+            flex-direction: column;
+            gap: 10px;
+            padding: 15px 10px;
+          }
+        
+          .logoImg {
+            width: 80px;
+            height: 80px;
+            border-width: 3px;
+          }
+        
+          .mainTitle {
+            font-size: 1.6rem;
+            padding-left: 0;
+            text-align: center;
+          }
+        
+          .topButtons {
+            width: 100%;
+            justify-content: center;
+            gap: 10px;
+          }
+        
+          .topButtons button {
+            padding: 10px 18px;
+            font-size: 0.95rem;
+          }
+        
+          /* ===== REMOVE DIVIDER ===== */
+          .dividerLine {
+            display: none;
+          }
+        
+          /* ===== STATUS BOX ===== */
+          .statusBox {
+            margin-top: 20px;
+            padding: 25px 15px;
+          }
+        
+          .welcomeText {
+            font-size: 1.5rem;
+            display: block;
+          }
+        
+          .voteStatus {
+            font-size: 1.3rem;
+          }
+        
+          /* ===== SEARCH (VOTE PAGE) ===== */
+          .searchWrapper {
+            width: 100%;
+          }
+        
+          .searchInput {
+            font-size: 1rem;
+            padding: 12px 18px 12px 40px;
+          }
+        
+          /* ===== GRID & CARDS ===== */
+          .grid {
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            margin: 40px 0;
+          }
+        
+          .cardWrap {
+            width: 100%;
+            max-width: 360px;
+          }
+        
+          .card {
+            width: 100%;
+            padding: 20px;
+          }
+        
+          .candidateImg {
+            width: 120px;
+            height: 120px;
+          }
+        
+          .desc {
+            font-size: 1rem;
+          }
+        
+          .votes {
+            font-size: 1.4rem;
+          }
+        
+          .voteBtn,
+          .editBtn,
+          .deleteBtn {
+            font-size: 1rem;
+            padding: 12px;
+          }
+        
+          /* ===== RESULTS ===== */
+          .resultsSection {
+            padding: 25px 15px;
+            margin-top: 60px;
+          }
+        
+          .chartTitle {
+            font-size: 1.7rem;
+          }
+        
+          .chartContainer {
+            height: 320px;
+          }
+        
+          .winnerBox {
+            font-size: 1.8rem;
+            padding: 30px;
+          }
+        
+          .winnerName {
+            font-size: 2rem;
+          }
+        
+          .waitingMessage {
+            font-size: 1.2rem;
+            margin: 50px 0;
+          }
         }
+        
       `}</style>
     </div>
   );

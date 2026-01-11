@@ -270,7 +270,7 @@ export default function VotePage() {
 
       <style jsx>{`
         .page {
-          min-height: 100vh;
+          min-height: 100dvh;
           padding: 230px 20px 40px;
           background: linear-gradient(270deg, #0f2027, #203a43, #2c5364);
           color: #fff;
@@ -552,26 +552,143 @@ export default function VotePage() {
           line-height: 1.8;
         }
 
-        @media (max-width: 480px) {
-          .page { padding: 280px 10px 20px 10px; }
-          .mainTitle { font-size: 1.8rem; }
-          .logoutBtn { padding: 10px 20px; font-size: 0.95rem; }
-          .grid { gap: 20px; flex-direction: column; margin: 40px 0; }
-          .card { width: 90%; padding: 20px; }
-          .candidateImg { width: 120px; height: 120px; margin-bottom: 20px; }
-          .desc { font-size: 1rem; margin: 15px 0; }
-          .votes { font-size: 1.4rem; }
-          .voteBtn { font-size: 1.1rem; padding: 12px; }
-          .statusBox { padding: 25px; }
-          .welcomeText { font-size: 1.6rem; }
-          .voteStatus { font-size: 1.4rem; }
-          .searchInput { font-size: 1rem; padding: 12px 20px 12px 40px; }
-          .resultsSection { padding: 30px 15px; }
-          .chartTitle { font-size: 1.8rem; }
-          .winnerBox { font-size: 1.8rem; padding: 30px; }
-          .winnerName { font-size: 2rem; }
-          .waitingMessage { font-size: 1.3rem; margin: 60px 0; }
+        /* ================= MOBILE FRIENDLY ================= */
+        @media (max-width: 768px) {
+        
+          /* ===== PAGE FIX ===== */
+          .page {
+            padding: 30px 12px 40px;
+            min-height: 100vh;
+          }
+        
+          /* ===== TOP BAR FIX ===== */
+          .topBar {
+            position: relative;       /* IMPORTANT */
+            flex-direction: column;
+            gap: 10px;
+            padding: 15px 10px;
+          }
+        
+          .logoImg {
+            width: 80px;
+            height: 80px;
+            border-width: 3px;
+          }
+        
+          .mainTitle {
+            font-size: 1.6rem;
+            padding-left: 0;
+            text-align: center;
+          }
+        
+          .topButtons {
+            width: 100%;
+            justify-content: center;
+            gap: 10px;
+          }
+        
+          .topButtons button {
+            padding: 10px 18px;
+            font-size: 0.95rem;
+          }
+        
+          /* ===== REMOVE DIVIDER ===== */
+          .dividerLine {
+            display: none;
+          }
+        
+          /* ===== STATUS BOX ===== */
+          .statusBox {
+            margin-top: 20px;
+            padding: 25px 15px;
+          }
+        
+          .welcomeText {
+            font-size: 1.5rem;
+            display: block;
+          }
+        
+          .voteStatus {
+            font-size: 1.3rem;
+          }
+        
+          /* ===== SEARCH (VOTE PAGE) ===== */
+          .searchWrapper {
+            width: 100%;
+          }
+        
+          .searchInput {
+            font-size: 1rem;
+            padding: 12px 18px 12px 40px;
+          }
+        
+          /* ===== GRID & CARDS ===== */
+          .grid {
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            margin: 40px 0;
+          }
+        
+          .cardWrap {
+            width: 100%;
+            max-width: 360px;
+          }
+        
+          .card {
+            width: 100%;
+            padding: 20px;
+          }
+        
+          .candidateImg {
+            width: 120px;
+            height: 120px;
+          }
+        
+          .desc {
+            font-size: 1rem;
+          }
+        
+          .votes {
+            font-size: 1.4rem;
+          }
+        
+          .voteBtn,
+          .editBtn,
+          .deleteBtn {
+            font-size: 1rem;
+            padding: 12px;
+          }
+        
+          /* ===== RESULTS ===== */
+          .resultsSection {
+            padding: 25px 15px;
+            margin-top: 60px;
+          }
+        
+          .chartTitle {
+            font-size: 1.7rem;
+          }
+        
+          .chartContainer {
+            height: 320px;
+          }
+        
+          .winnerBox {
+            font-size: 1.8rem;
+            padding: 30px;
+          }
+        
+          .winnerName {
+            font-size: 2rem;
+          }
+        
+          .waitingMessage {
+            font-size: 1.2rem;
+            margin: 50px 0;
+          }
         }
+        
       `}</style>
     </div>
   );

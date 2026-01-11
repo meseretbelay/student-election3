@@ -18,4 +18,10 @@ body {
   height: 100%;
   overflow-x: hidden;
   background: #1c3c53;
+  font-size: 16px;
+}
+/* Remove mobile auto zoom */
+input,
+button {
+  font-size: 16px;
 }
