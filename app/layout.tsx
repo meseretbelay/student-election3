@@ -1,9 +1,15 @@
 import "./globals.css";
+import type { Viewport } from "next";
 
 export const metadata = {
   title: "Student Election System",
   description: "Online voting system",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({
@@ -13,7 +19,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      {/* ADD IT HERE 👇 */}
+      <body className="text-sm md:text-base">
+        {children}
+      </body>
     </html>
   );
 }

@@ -552,143 +552,143 @@ export default function VotePage() {
           line-height: 1.8;
         }
 
-        /* ================= MOBILE FRIENDLY ================= */
-        @media (max-width: 768px) {
-        
-          /* ===== PAGE FIX ===== */
-          .page {
-            padding: 30px 12px 40px;
-            min-height: 100vh;
-          }
-        
-          /* ===== TOP BAR FIX ===== */
-          .topBar {
-            position: relative;       /* IMPORTANT */
-            flex-direction: column;
-            gap: 10px;
-            padding: 15px 10px;
-          }
-        
-          .logoImg {
-            width: 80px;
-            height: 80px;
-            border-width: 3px;
-          }
-        
-          .mainTitle {
-            font-size: 1.6rem;
-            padding-left: 0;
-            text-align: center;
-          }
-        
-          .topButtons {
-            width: 100%;
-            justify-content: center;
-            gap: 10px;
-          }
-        
-          .topButtons button {
-            padding: 10px 18px;
-            font-size: 0.95rem;
-          }
-        
-          /* ===== REMOVE DIVIDER ===== */
-          .dividerLine {
-            display: none;
-          }
-        
-          /* ===== STATUS BOX ===== */
-          .statusBox {
-            margin-top: 20px;
-            padding: 25px 15px;
-          }
-        
-          .welcomeText {
-            font-size: 1.5rem;
-            display: block;
-          }
-        
-          .voteStatus {
-            font-size: 1.3rem;
-          }
-        
-          /* ===== SEARCH (VOTE PAGE) ===== */
-          .searchWrapper {
-            width: 100%;
-          }
-        
-          .searchInput {
-            font-size: 1rem;
-            padding: 12px 18px 12px 40px;
-          }
-        
-          /* ===== GRID & CARDS ===== */
-          .grid {
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-            margin: 40px 0;
-          }
-        
-          .cardWrap {
-            width: 100%;
-            max-width: 360px;
-          }
-        
-          .card {
-            width: 100%;
-            padding: 20px;
-          }
-        
-          .candidateImg {
-            width: 120px;
-            height: 120px;
-          }
-        
-          .desc {
-            font-size: 1rem;
-          }
-        
-          .votes {
-            font-size: 1.4rem;
-          }
-        
-          .voteBtn,
-          .editBtn,
-          .deleteBtn {
-            font-size: 1rem;
-            padding: 12px;
-          }
-        
-          /* ===== RESULTS ===== */
-          .resultsSection {
-            padding: 25px 15px;
-            margin-top: 60px;
-          }
-        
-          .chartTitle {
-            font-size: 1.7rem;
-          }
-        
-          .chartContainer {
-            height: 320px;
-          }
-        
-          .winnerBox {
-            font-size: 1.8rem;
-            padding: 30px;
-          }
-        
-          .winnerName {
-            font-size: 2rem;
-          }
-        
-          .waitingMessage {
-            font-size: 1.2rem;
-            margin: 50px 0;
-          }
-        }
-        
+       /* ================= MOBILE FRIENDLY ================= */
+@media (max-width: 768px) {
+
+  /* ===== PAGE FIX ===== */
+  .page {
+    padding: 30px 12px 40px;
+    min-height: 100vh;
+  }
+
+  /* ===== TOP BAR FIX ===== */
+  .topBar {
+    position: relative;       /* IMPORTANT */
+    flex-direction: column;
+    gap: 10px;
+    padding: 15px 10px;
+  }
+
+  .logoImg {
+    width: 80px;
+    height: 80px;
+    border-width: 3px;
+  }
+
+  .mainTitle {
+    font-size: 1.6rem;
+    padding-left: 0;
+    text-align: center;
+  }
+
+  .topButtons {
+    width: 100%;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .topButtons button {
+    padding: 10px 18px;
+    font-size: 0.95rem;
+  }
+
+  /* ===== REMOVE DIVIDER ===== */
+  .dividerLine {
+    display: none;
+  }
+
+  /* ===== STATUS BOX ===== */
+  .statusBox {
+    margin-top: 20px;
+    padding: 25px 15px;
+  }
+
+  .welcomeText {
+    font-size: 1.5rem;
+    display: block;
+  }
+
+  .voteStatus {
+    font-size: 1.3rem;
+  }
+
+  /* ===== SEARCH (VOTE PAGE) ===== */
+  .searchWrapper {
+    width: 100%;
+  }
+
+  .searchInput {
+    font-size: 1rem;
+    padding: 12px 18px 12px 40px;
+  }
+
+  /* ===== GRID & CARDS ===== */
+  .grid {
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    margin: 40px 0;
+  }
+
+  .cardWrap {
+    width: 100%;
+    max-width: 360px;
+  }
+
+  .card {
+    width: 100%;
+    padding: 20px;
+  }
+
+  .candidateImg {
+    width: 120px;
+    height: 120px;
+  }
+
+  .desc {
+    font-size: 1rem;
+  }
+
+  .votes {
+    font-size: 1.4rem;
+  }
+
+  .voteBtn,
+  .editBtn,
+  .deleteBtn {
+    font-size: 1rem;
+    padding: 12px;
+  }
+
+  /* ===== RESULTS ===== */
+  .resultsSection {
+    padding: 25px 15px;
+    margin-top: 60px;
+  }
+
+  .chartTitle {
+    font-size: 1.7rem;
+  }
+
+  .chartContainer {
+    height: 320px;
+  }
+
+  .winnerBox {
+    font-size: 1.8rem;
+    padding: 30px;
+  }
+
+  .winnerName {
+    font-size: 2rem;
+  }
+
+  .waitingMessage {
+    font-size: 1.2rem;
+    margin: 50px 0;
+  }
+}
+
       `}</style>
     </div>
   );
