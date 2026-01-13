@@ -32,6 +32,13 @@ export default function AdminDashboard() {
     | null
   >(null);
 
+  // New state for edit modal
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingCandidate, setEditingCandidate] = useState<Candidate | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editImage, setEditImage] = useState("");
+
   /* ================= AUTH ================= */
   useEffect(() => {
     const unsub = listenAuth((u) => {
@@ -74,20 +81,24 @@ export default function AdminDashboard() {
   /* ================= ADD ================= */
   const openAdd = () => {
     if (submitting) return;
-    setSubmitting(true);
 
-    if (!newName.trim() || !newDesc.trim() || !newImage.trim()) {
+    const trimmedName = newName.trim();
+    const trimmedDesc = newDesc.trim();
+    const trimmedImage = newImage.trim();
+
+    if (!trimmedName || !trimmedDesc || !trimmedImage) {
       alert("All fields are required!");
-      setSubmitting(false);
       return;
     }
+
+    setSubmitting(true);
 
     setPendingAction({
       type: "add",
       data: {
-        name: newName.trim(),
-        description: newDesc.trim(),
-        image: newImage.trim(),
+        name: trimmedName,
+        description: trimmedDesc,
+        image: trimmedImage,
       },
     });
     setShowPasswordModal(true);
@@ -95,16 +106,24 @@ export default function AdminDashboard() {
 
   /* ================= EDIT ================= */
   const openEdit = (c: Candidate) => {
-    const name = prompt("Edit Name:", c.name)?.trim() || c.name;
-    const description = prompt("Edit Description:", c.description)?.trim() || c.description;
-    const image = prompt("Edit Image URL:", c.image)?.trim() || c.image;
+    setEditingCandidate(c);
+    setEditName(c.name);
+    setEditDesc(c.description);
+    setEditImage(c.image);
+    setShowEditModal(true);
+  };
 
-    if (name === c.name && description === c.description && image === c.image) return;
+  const handleEditSubmit = () => {
+    if (editName === editingCandidate?.name && editDesc === editingCandidate?.description && editImage === editingCandidate?.image) {
+      setShowEditModal(false);
+      return;
+    }
 
     setPendingAction({
       type: "edit",
-      data: { id: c.id!, name, description, image },
+      data: { id: editingCandidate!.id!, name: editName.trim(), description: editDesc.trim(), image: editImage.trim() },
     });
+    setShowEditModal(false);
     setShowPasswordModal(true);
   };
 
@@ -278,6 +297,38 @@ export default function AdminDashboard() {
         <AdminPasswordModel onConfirm={handlePasswordConfirm} onClose={() => {setShowPasswordModal(false); setPendingAction(null); setSubmitting(false);}} />
       )}
 
+      {/* ================= EDIT MODAL (NEW) ================= */}
+      {showEditModal && editingCandidate && (
+        <div className="overlay">
+          <div className="modal">
+            <h3>Edit Candidate</h3>
+            <div className="form">
+              <input
+                placeholder="Candidate Name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+              />
+              <input
+                placeholder="Description"
+                value={editDesc}
+                onChange={(e) => setEditDesc(e.target.value)}
+              />
+              <input
+                placeholder="Image URL"
+                value={editImage}
+                onChange={(e) => setEditImage(e.target.value)}
+              />
+            </div>
+            <div className="buttons">
+              <button onClick={handleEditSubmit}>Save Changes</button>
+              <button onClick={() => setShowEditModal(false)} className="cancel">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ================= STYLES ================= */}
       <style jsx>{`
         /* ================= ORIGINAL DESKTOP STYLES ================= */
@@ -332,6 +383,63 @@ export default function AdminDashboard() {
         .winnerBox{margin-top:70px;padding:60px;background:rgba(255,215,0,0.25);border-radius:30px;font-size:3rem;font-weight:900;color:#ffd700;line-height:1.8;border:4px dashed #ffd700;box-shadow:0 20px 50px rgba(255,215,0,0.3);}
         .winnerName{color:#36d1dc;font-size:3.4rem;}
 
+        /* ================= EDIT MODAL STYLES (NEW) ================= */
+        .overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.7);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2000;
+        }
+        .modal {
+          background: #1e3a52;
+          padding: 40px;
+          border-radius: 20px;
+          width: 90%;
+          max-width: 420px;
+          text-align: center;
+          color: white;
+          box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+          border: 2px solid #36d1dc;
+        }
+        h3 {
+          margin: 0 0 20px 0;
+          font-size: 1.8rem;
+          color: #36d1dc;
+        }
+        .buttons {
+          display: flex;
+          gap: 15px;
+          margin-top: 20px;
+        }
+        button {
+          flex: 1;
+          padding: 14px;
+          border-radius: 12px;
+          border: none;
+          font-weight: 700;
+          font-size: 1.1rem;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+        button:first-child {
+          background: linear-gradient(135deg, #36d1dc, #5b86e5);
+          color: white;
+        }
+        button:first-child:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 10px 25px rgba(54, 209, 220, 0.5);
+        }
+        .cancel {
+          background: #555;
+          color: white;
+        }
+        .cancel:hover {
+          background: #777;
+        }
+        
        /* ================= MOBILE FRIENDLY ================= */
 @media (max-width: 768px) {
 
