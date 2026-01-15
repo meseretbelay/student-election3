@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { loginUser } from "../../../lib/firebaseFunctions";
 import Link from "next/link";
+import { motion } from "framer-motion";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -24,7 +25,7 @@ export default function AdminLoginPage() {
       }
       router.replace("/admin/dashboard");
     } catch (err: any) {
-      setError(err.message || "Login failed.");
+      setError(err.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -32,171 +33,183 @@ export default function AdminLoginPage() {
 
   return (
     <div className="page">
-      <form className="card" onSubmit={handleLogin}>
-        <img src="/images/mau.jpg" alt="MAU Logo" className="logo" />
-        <h1>Admin Login</h1>
-        {error && <p className="error">{error}</p>}
+      <motion.div
+        className="cardWrapper"
+        initial={{ opacity: 0, y: 50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <form className="card" onSubmit={handleLogin}>
+          <img src="/images/mau.jpg" alt="MAU Logo" className="logo" />
 
-        <input
-          type="email"
-          placeholder="Admin Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          disabled={loading}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          disabled={loading}
-        />
+          <h1>Adminstration Login    </h1>
 
-        <button type="submit" disabled={loading} className="loginBtn">
-          {loading ? "Logging in..." : "Login"}
-        </button>
+          {error && <p className="error">{error}</p>}
 
-        <p className="back">
-          <Link href="/login">← Back to Student Login</Link>
-        </p>
-      </form>
+          <input
+            type="email"
+            placeholder="Admin Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            disabled={loading}
+          />
+
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            disabled={loading}
+          />
+
+          <button type="submit" disabled={loading}>
+            {loading ? "Logging in..." : "Login"}
+          </button>
+
+          <p className="link">
+            <Link href="/login">← Back to Student Login</Link>
+          </p>
+        </form>
+      </motion.div>
 
       <style jsx>{`
+        /* ================= ROOT ================= */
         .page {
           min-height: 100vh;
+          width: 100%;
+          overflow: hidden;
           display: flex;
-          align-items: center;
           justify-content: center;
-          background: #1c3c53;
-          padding: 0px;
-          margin:0px;
+          align-items: center;
+          background: linear-gradient(270deg, #0f2027, #203a43, #2c5364);
+          background-size: 600% 600%;
+          animation: gradient 15s ease infinite;
         }
 
+        @keyframes gradient {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+
+        .cardWrapper {
+          width: 100%;
+          max-width: 600px;
+        }
+
+        /* ================= CARD ================= */
         .card {
-          width: 380px;
-          max-width: 95vw;
           background: rgba(255, 255, 255, 0.12);
-          padding: 45px 40px;
-          border-radius: 22px;
-          color: #fff;
+          padding: 50px;
+          border-radius: 25px;
           display: flex;
           flex-direction: column;
           gap: 20px;
           align-items: center;
-          backdrop-filter: blur(12px);
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+          color: #fff;
+          backdrop-filter: blur(25px);
+          box-shadow: 0 35px 70px rgba(0, 0, 0, 0.5);
         }
 
         .logo {
-          width: 110px;
-          height: 110px;
+          width: 130px;
+          height: 130px;
           border-radius: 50%;
           object-fit: cover;
           border: 4px solid #36d1dc;
-          margin-bottom: 10px;
+          margin-bottom: 15px;
         }
 
+        /* ✅ SAME FONT SIZE AS STUDENT LOGIN */
         h1 {
-          font-size: 26px;
+          margin: 0 0 20px 0;
+          font-size: 2.2rem;
           font-weight: 700;
-          margin: 0;
+          text-align: center;
+        }
+
+        input,
+        button {
+          width: 100%;
+          max-width: 500px;
+          height: 55px;
+          padding: 0 20px;
+          border-radius: 22px;
+          font-size: 1.1rem;
+          border: none;
         }
 
         input {
-          width: 100%;
-          height: 52px;
-          padding: 0 18px;
-          border-radius: 12px;
-          border: none;
-          background: rgba(255, 255, 255, 0.2);
-          color: white;
-          font-size: 16px;
+          background: rgba(255, 255, 255, 0.25);
+          color: #fff;
           outline: none;
-          box-sizing: border-box;
         }
 
         input::placeholder {
-          color: #ddd;
+          color: #f0f0f0;
         }
 
-        .loginBtn {
-          width: 100%;
-          height: 52px;
-          border-radius: 12px;
-          border: none;
+        button {
           background: linear-gradient(135deg, #36d1dc, #5b86e5);
-          color: white;
-          font-size: 16px;
+          color: #fff;
           font-weight: 700;
           cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s ease;
         }
 
-        .loginBtn:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 20px rgba(54, 209, 220, 0.4);
-        }
-
-        .loginBtn:disabled {
-          opacity: 0.7;
+        button:disabled {
+          opacity: 0.6;
           cursor: not-allowed;
         }
 
         .error {
           color: #ff6b6b;
           text-align: center;
-          font-size: 14px;
-          margin: 0;
+          font-size: 1rem;
         }
 
-        .back {
-          margin-top: 10px;
-          font-size: 14px;
+        .link {
+          font-size: 1rem;
+          text-align: center;
         }
 
-        .back a {
-          color: #cdefff;
+        .link a {
+          color: #36d1dc;
+          font-weight: 600;
           text-decoration: none;
-          font-weight: 500;
         }
 
-        .back a:hover {
+        .link a:hover {
           text-decoration: underline;
         }
 
-        .back a:visited {
-          color: #cdefff;
-        }
-
-        /* ===== MOBILE RESPONSIVE ===== */
+        /* ================= MOBILE ================= */
         @media (max-width: 480px) {
           .card {
             padding: 35px 20px;
-            width: 95%;
+            border-radius: 20px;
             gap: 15px;
           }
 
-          h1 {
-            font-size: 22px;
-          }
-
           .logo {
-            width: 90px;
-            height: 90px;
+            width: 100px;
+            height: 100px;
           }
 
-          input, .loginBtn {
-            height: 48px;
-            font-size: 15px;
+          h1 {
+            font-size: 1.8rem;
           }
 
-          .back {
-            font-size: 13px;
+          input,
+          button {
+            height: 50px;
+            font-size: 1rem;
+            border-radius: 18px;
+          }
+
+          .link {
+            font-size: 0.9rem;
           }
         }
       `}</style>

@@ -42,7 +42,6 @@ export default function LoginPage() {
       >
         <form className="card" onSubmit={handleLogin}>
           <img src="/images/mau.jpg" alt="MAU Logo" className="logo" />
-
           <h1>Student Election Login</h1>
 
           {error && <p className="error">{error}</p>}
@@ -80,11 +79,9 @@ export default function LoginPage() {
       </motion.div>
 
       <style jsx>{`
-        /* ================= ROOT FIX ================= */
         .page {
           min-height: 100vh;
           width: 100%;
-          overflow: hidden;
           display: flex;
           justify-content: center;
           align-items: center;
@@ -94,23 +91,19 @@ export default function LoginPage() {
         }
 
         @keyframes gradient {
-          0% {
-            background-position: 0% 50%;
-          }
-          50% {
-            background-position: 100% 50%;
-          }
-          100% {
-            background-position: 0% 50%;
-          }
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
         }
 
+        /* === wrapper same as register === */
         .cardWrapper {
           width: 100%;
           max-width: 600px;
         }
 
         .card {
+          width: 100%;
           background: rgba(255, 255, 255, 0.12);
           padding: 50px;
           border-radius: 25px;
@@ -121,6 +114,7 @@ export default function LoginPage() {
           color: #fff;
           backdrop-filter: blur(25px);
           box-shadow: 0 35px 70px rgba(0, 0, 0, 0.5);
+          box-sizing: border-box;
         }
 
         .logo {
@@ -149,12 +143,13 @@ export default function LoginPage() {
           border-radius: 22px;
           font-size: 1.1rem;
           border: none;
+          outline: none;
+          box-sizing: border-box;
         }
 
         input {
           background: rgba(255, 255, 255, 0.25);
           color: #fff;
-          outline: none;
         }
 
         input::placeholder {
@@ -181,15 +176,15 @@ export default function LoginPage() {
 
         .error {
           color: #ff6b6b;
-          text-align: center;
           font-size: 1rem;
+          text-align: center;
           margin: 0;
         }
 
         .link {
+          margin-top: 15px;
           font-size: 1rem;
           text-align: center;
-          margin: 0;
         }
 
         .link a {
@@ -206,7 +201,7 @@ export default function LoginPage() {
           color: #36d1dc;
         }
 
-        /* ========== MOBILE FIX (IMPORTANT) ========== */
+        /* ===== MOBILE RESPONSIVE ===== */
         @media (max-width: 480px) {
           .card {
             padding: 35px 20px;
@@ -231,14 +226,7 @@ export default function LoginPage() {
           }
 
           .link {
-            font-size: 0.9rem;
-          }
-        }
-
-        /* ===== SAFARI / IOS FIX ===== */
-        @supports (-webkit-touch-callout: none) {
-          .page {
-            min-height: -webkit-fill-available;
+            font-size: 0.85rem;
           }
         }
       `}</style>
