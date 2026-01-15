@@ -203,136 +203,139 @@ export default function AdminDashboard() {
     router.push("/admin/login");
   };
 
-  if (!user) return <p className="loading">Loading dashboard...</p>;
-
   const electionDone = votedCount === totalVoters && totalVoters > 0;
   const maxVotes = Math.max(...candidates.map((c) => c.votes || 0), 0);
   const winners = candidates.filter((c) => (c.votes || 0) === maxVotes && maxVotes > 0);
 
   return (
     <div className="page">
-      {/* ================= TOP BAR ================= */}
-      <div className="topBar">
-        <div className="topLeftLogo">
-          <img src="/images/mau.jpg" alt="MAU Logo" className="logoImg" />
-        </div>
-        <h1 className="mainTitle">Admin Dashboard</h1>
-        <div className="topButtons">
-          <button className="resetBtn" onClick={openReset}>🔄 Reset Election</button>
-          <button className="logoutBtn" onClick={handleLogout}>🚪 Logout</button>
-        </div>
-      </div>
-
-      <div className="dividerLine"></div>
-
-      {/* ================= STATUS BOX ================= */}
-      <div className="statusBox">
-        <div className="welcomeText">
-          Welcome, <strong className="blue">{user.username}</strong>
-        </div>
-        <div className="voteStatus">{votedCount} / {totalVoters} students voted</div>
-      </div>
-
-      {/* ================= ADD NEW CANDIDATE ================= */}
-      <div className="addSection">
-        <h2 className="sectionTitle">Add New Candidate</h2>
-        <div className="form">
-          <input placeholder="Candidate Name" value={newName} onChange={(e) => setNewName(e.target.value)} />
-          <input placeholder="Description" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} />
-          <input placeholder="Image URL" value={newImage} onChange={(e) => setNewImage(e.target.value)} />
-          <button onClick={openAdd} className="addBtn" disabled={submitting}>➕ Add Candidate</button>
-        </div>
-      </div>
-
-      {/* ================= CANDIDATES GRID ================= */}
-      <div className="grid">
-        {candidates.map((c) => (
-          <motion.div
-  key={c.id}
-  className="cardWrap"
-  whileHover={{
-    scale: 1.05,                       // lift the card
-    rotateX: -3,                        // subtle tilt
-    rotateY: 3,                         // subtle tilt
-    boxShadow: "0 25px 50px rgba(54, 209, 220, 0.6)", // glowing shadow
-  }}
-  whileTap={{ scale: 0.97 }}           // press feedback
-  transition={{ type: "spring", stiffness: 300, damping: 20 }}
->
-  <div className="card">
-    <img src={c.image} alt={c.name} className="candidateImg" />
-    <h2 className="blue">{c.name}</h2>
-    <p className="desc">{c.description}</p>
-    <p className="votes">
-      <strong>{c.votes || 0}</strong> vote{c.votes !== 1 ? "s" : ""}
-    </p>
-    <div className="actions">
-      <button className="editBtn" onClick={() => openEdit(c)}>✏️ Edit</button>
-      <button className="deleteBtn" onClick={() => openDelete(c.id!)}>🗑️ Delete</button>
-    </div>
-  </div>
-</motion.div>
-
-        ))}
-      </div>
-
-      {/* ================= LIVE RESULTS ================= */}
-      <div className="resultsSection">
-        <h2 className="chartTitle">Live Election Results</h2>
-        <div className="chartContainer">
-          <ResultsChart candidates={candidates} />
-        </div>
-        {electionDone && (
-          <div className="winnerBox">
-            🏆 <strong>ELECTION COMPLETE!</strong> 🏆<br /><br />
-            Winner{winners.length > 1 ? "s (Tie)" : ""}:<br />
-            <strong className="winnerName">{winners.map((w, i) => <span key={w.id}>{w.name}{i < winners.length - 1 ? " & " : ""}</span>)}</strong>
-            <br /><br />
-            with {maxVotes} vote{maxVotes !== 1 ? "s" : ""}!
+      {!user ? (
+        <p className="loading">Loading dashboard...</p>
+      ) : (
+        <>
+          {/* ================= TOP BAR ================= */}
+          <div className="topBar">
+            <div className="topLeftLogo">
+              <img src="/images/mau.jpg" alt="MAU Logo" className="logoImg" />
+            </div>
+            <h1 className="mainTitle">Admin Dashboard</h1>
+            <div className="topButtons">
+              <button className="resetBtn" onClick={openReset}>🔄 Reset Election</button>
+              <button className="logoutBtn" onClick={handleLogout}>🚪 Logout</button>
+            </div>
           </div>
-        )}
-      </div>
 
-      {showPasswordModal && (
-        <AdminPasswordModel onConfirm={handlePasswordConfirm} onClose={() => {setShowPasswordModal(false); setPendingAction(null); setSubmitting(false);}} />
-      )}
+          <div className="dividerLine"></div>
 
-      {/* ================= EDIT MODAL (NEW) ================= */}
-      {showEditModal && editingCandidate && (
-        <div className="overlay">
-          <div className="modal">
-            <h3>Edit Candidate</h3>
+          {/* ================= STATUS BOX ================= */}
+          <div className="statusBox">
+            <div className="welcomeText">
+              Welcome, <strong className="blue">{user.username}</strong>
+            </div>
+            <div className="voteStatus">{votedCount} / {totalVoters} students voted</div>
+          </div>
+
+          {/* ================= ADD NEW CANDIDATE ================= */}
+          <div className="addSection">
+            <h2 className="sectionTitle">Add New Candidate</h2>
             <div className="form">
-              <input
-                placeholder="Candidate Name"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-              />
-              <input
-                placeholder="Description"
-                value={editDesc}
-                onChange={(e) => setEditDesc(e.target.value)}
-              />
-              <input
-                placeholder="Image URL"
-                value={editImage}
-                onChange={(e) => setEditImage(e.target.value)}
-              />
-            </div>
-            <div className="buttons">
-              <button onClick={handleEditSubmit}>Save Changes</button>
-              <button onClick={() => setShowEditModal(false)} className="cancel">
-                Cancel
-              </button>
+              <input placeholder="Candidate Name" value={newName} onChange={(e) => setNewName(e.target.value)} />
+              <input placeholder="Description" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} />
+              <input placeholder="Image URL" value={newImage} onChange={(e) => setNewImage(e.target.value)} />
+              <button onClick={openAdd} className="addBtn" disabled={submitting}>➕ Add Candidate</button>
             </div>
           </div>
-        </div>
+
+          {/* ================= CANDIDATES GRID ================= */}
+          <div className="grid">
+            {candidates.map((c) => (
+              <motion.div
+                key={c.id}
+                className="cardWrap"
+                whileHover={{
+                  scale: 1.05,                       // lift the card
+                  rotateX: -3,                        // subtle tilt
+                  rotateY: 3,                         // subtle tilt
+                  boxShadow: "0 25px 50px rgba(54, 209, 220, 0.6)", // glowing shadow
+                }}
+                whileTap={{ scale: 0.97 }}           // press feedback
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              >
+                <div className="card">
+                  <img src={c.image} alt={c.name} className="candidateImg" />
+                  <h2 className="blue">{c.name}</h2>
+                  <p className="desc">{c.description}</p>
+                  <p className="votes">
+                    <strong>{c.votes || 0}</strong> vote{c.votes !== 1 ? "s" : ""}
+                  </p>
+                  <div className="actions">
+                    <button className="editBtn" onClick={() => openEdit(c)}>✏️ Edit</button>
+                    <button className="deleteBtn" onClick={() => openDelete(c.id!)}>🗑️ Delete</button>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* ================= LIVE RESULTS ================= */}
+          <div className="resultsSection">
+            <h2 className="chartTitle">Live Election Results</h2>
+            <div className="chartContainer">
+              <ResultsChart candidates={candidates} />
+            </div>
+            {electionDone && (
+              <div className="winnerBox">
+                🏆 <strong>ELECTION COMPLETE!</strong> 🏆<br /><br />
+                Winner{winners.length > 1 ? "s (Tie)" : ""}:<br />
+                <strong className="winnerName">{winners.map((w, i) => <span key={w.id}>{w.name}{i < winners.length - 1 ? " & " : ""}</span>)}</strong>
+                <br /><br />
+                with {maxVotes} vote{maxVotes !== 1 ? "s" : ""}!
+              </div>
+            )}
+          </div>
+
+          {showPasswordModal && (
+            <AdminPasswordModel onConfirm={handlePasswordConfirm} onClose={() => {setShowPasswordModal(false); setPendingAction(null); setSubmitting(false);}} />
+          )}
+
+          {/* ================= EDIT MODAL (NEW) ================= */}
+          {showEditModal && editingCandidate && (
+            <div className="overlay">
+              <div className="modal">
+                <h3>Edit Candidate</h3>
+                <div className="form">
+                  <input
+                    placeholder="Candidate Name"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                  />
+                  <input
+                    placeholder="Description"
+                    value={editDesc}
+                    onChange={(e) => setEditDesc(e.target.value)}
+                  />
+                  <input
+                    placeholder="Image URL"
+                    value={editImage}
+                    onChange={(e) => setEditImage(e.target.value)}
+                  />
+                </div>
+                <div className="buttons">
+                  <button onClick={handleEditSubmit}>Save Changes</button>
+                  <button onClick={() => setShowEditModal(false)} className="cancel">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* ================= STYLES ================= */}
       <style jsx>{`
         /* ================= ORIGINAL DESKTOP STYLES ================= */
-        .page { min-height: 100dvh; padding: 230px 20px 40px; background: linear-gradient(270deg,#0f2027,#203a43,#2c5364); color:#fff; }
+        .page { position: relative; min-height: 100dvh; padding: 230px 20px 40px; background: linear-gradient(270deg,#0f2027,#203a43,#2c5364); color:#fff; }
         .topBar { display:flex; align-items:center; justify-content:space-between; padding:5px 30px; background: rgba(255,255,255,0.05); backdrop-filter:blur(10px); position:fixed; top:0; left:0; right:0; z-index:1000; box-shadow:0 4px 20px rgba(0,0,0,0.3); }
         .topLeftLogo{flex-shrink:0;}
         .logoImg{width:140px;height:140px;border-radius:50%;object-fit:cover;border:5px solid #36d1dc;box-shadow:0 12px 40px rgba(54,209,220,0.6);transition: all 0.4s ease;}
@@ -438,6 +441,16 @@ export default function AdminDashboard() {
         }
         .cancel:hover {
           background: #777;
+        }
+
+        /* ================= LOADING STYLES ================= */
+        .loading {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          font-size: 1.5rem;
+          color: #36d1dc;
         }
         
        /* ================= MOBILE FRIENDLY ================= */
@@ -574,6 +587,11 @@ export default function AdminDashboard() {
   .waitingMessage {
     font-size: 1.2rem;
     margin: 50px 0;
+  }
+
+  /* ===== LOADING MOBILE ===== */
+  .loading {
+    font-size: 1.2rem;
   }
 }
 

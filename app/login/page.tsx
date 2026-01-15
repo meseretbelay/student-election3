@@ -202,6 +202,10 @@ export default function LoginPage() {
           text-decoration: underline;
         }
 
+        .link a:visited {
+          color: #36d1dc;
+        }
+
         /* ========== MOBILE FIX (IMPORTANT) ========== */
         @media (max-width: 480px) {
           .card {

@@ -1,4 +1,3 @@
-// app/register/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -227,6 +226,10 @@ export default function RegisterPage() {
 
         .link a:hover {
           text-decoration: underline;
+        }
+
+        .link a:visited {
+          color: #36d1dc;
         }
 
         .note {

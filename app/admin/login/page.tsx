@@ -1,4 +1,3 @@
-// app/admin/login/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -168,6 +167,10 @@ export default function AdminLoginPage() {
 
         .back a:hover {
           text-decoration: underline;
+        }
+
+        .back a:visited {
+          color: #cdefff;
         }
 
         /* ===== MOBILE RESPONSIVE ===== */
