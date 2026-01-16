@@ -206,10 +206,12 @@ export default function VotePage() {
             key={c.id}
             className="cardWrap"
             whileHover={{
-              scale: 1.06,
-              rotateZ: 1,
+              scale: 1.05,
+              rotateX: -3,
+              rotateY: 3,
               boxShadow: "0 25px 50px rgba(54, 209, 220, 0.6)",
             }}
+            whileTap={{ scale: 0.97 }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
           >
             <div className="card">

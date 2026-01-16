@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -10,20 +9,21 @@ import ResultsChart from "../../../components/ResultsChart";
 import { collection, onSnapshot } from "firebase/firestore";
 import AdminPasswordModel from "../../../components/AdminPasswordModel";
 
+type ExtendedAppUser = AppUser & { id: string; hasVoted?: boolean; votedFor?: string; email?: string };
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<AppUser | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [totalVoters, setTotalVoters] = useState(0);
   const [votedCount, setVotedCount] = useState(0);
-
+  const [students, setStudents] = useState<ExtendedAppUser[]>([]);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newImage, setNewImage] = useState("");
-
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
+  
   const [pendingAction, setPendingAction] = useState<
     | { type: "add"; data: { name: string; description: string; image: string } }
     | { type: "edit"; data: { id: string; name: string; description: string; image: string } }
@@ -31,14 +31,14 @@ export default function AdminDashboard() {
     | { type: "reset" }
     | null
   >(null);
-
   // New state for edit modal
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingCandidate, setEditingCandidate] = useState<Candidate | null>(null);
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
   const [editImage, setEditImage] = useState("");
-
+  // New state for view students modal
+  const [showStudentsModal, setShowStudentsModal] = useState(false);
   /* ================= AUTH ================= */
   useEffect(() => {
     const unsub = listenAuth((u) => {
@@ -48,10 +48,10 @@ export default function AdminDashboard() {
     });
     return () => unsub();
   }, [router]);
-
   /* ================= USERS ================= */
   useEffect(() => {
     return onSnapshot(collection(db, "users"), (snap) => {
+      const studentList: ExtendedAppUser[] = [];
       let total = 0;
       let voted = 0;
       snap.forEach((d) => {
@@ -59,13 +59,14 @@ export default function AdminDashboard() {
         if (!u.isAdmin) {
           total++;
           if (u.hasVoted) voted++;
+          studentList.push({ id: d.id, ...(u as AppUser) });
         }
       });
       setTotalVoters(total);
       setVotedCount(voted);
+      setStudents(studentList);
     });
   }, []);
-
   /* ================= CANDIDATES ================= */
   useEffect(() => {
     return onSnapshot(collection(db, "candidates"), (snap) => {
@@ -77,22 +78,17 @@ export default function AdminDashboard() {
       );
     });
   }, []);
-
   /* ================= ADD ================= */
   const openAdd = () => {
     if (submitting) return;
-
     const trimmedName = newName.trim();
     const trimmedDesc = newDesc.trim();
     const trimmedImage = newImage.trim();
-
     if (!trimmedName || !trimmedDesc || !trimmedImage) {
       alert("All fields are required!");
       return;
     }
-
     setSubmitting(true);
-
     setPendingAction({
       type: "add",
       data: {
@@ -103,7 +99,6 @@ export default function AdminDashboard() {
     });
     setShowPasswordModal(true);
   };
-
   /* ================= EDIT ================= */
   const openEdit = (c: Candidate) => {
     setEditingCandidate(c);
@@ -112,13 +107,11 @@ export default function AdminDashboard() {
     setEditImage(c.image);
     setShowEditModal(true);
   };
-
   const handleEditSubmit = () => {
     if (editName === editingCandidate?.name && editDesc === editingCandidate?.description && editImage === editingCandidate?.image) {
       setShowEditModal(false);
       return;
     }
-
     setPendingAction({
       type: "edit",
       data: { id: editingCandidate!.id!, name: editName.trim(), description: editDesc.trim(), image: editImage.trim() },
@@ -126,29 +119,24 @@ export default function AdminDashboard() {
     setShowEditModal(false);
     setShowPasswordModal(true);
   };
-
   /* ================= DELETE ================= */
   const openDelete = (id: string) => {
     if (!confirm("⚠️ Delete this candidate permanently?")) return;
     setPendingAction({ type: "delete", data: { id } });
     setShowPasswordModal(true);
   };
-
   /* ================= RESET ================= */
   const openReset = () => {
     if (!confirm("⚠️ RESET ENTIRE ELECTION?\nAll votes will be lost forever!")) return;
     setPendingAction({ type: "reset" });
     setShowPasswordModal(true);
   };
-
   /* ================= CONFIRM ================= */
   const handlePasswordConfirm = async (password?: string) => {
     if (!pendingAction || !auth.currentUser) return;
-
     try {
       const idToken = await auth.currentUser.getIdToken();
       let res: Response | undefined;
-
       if (pendingAction.type === "add") {
         res = await fetch("/api/admin/add-candidate", {
           method: "POST",
@@ -174,9 +162,7 @@ export default function AdminDashboard() {
           body: JSON.stringify({ idToken }),
         });
       }
-
       if (!res || !res.ok) throw new Error("Action failed");
-
       if (pendingAction.type === "add") {
         setNewName("");
         setNewDesc("");
@@ -197,16 +183,13 @@ export default function AdminDashboard() {
       setSubmitting(false);
     }
   };
-
   const handleLogout = async () => {
     await logoutUser();
     router.push("/admin/login");
   };
-
   const electionDone = votedCount === totalVoters && totalVoters > 0;
   const maxVotes = Math.max(...candidates.map((c) => c.votes || 0), 0);
   const winners = candidates.filter((c) => (c.votes || 0) === maxVotes && maxVotes > 0);
-
   return (
     <div className="page">
       {!user ? (
@@ -224,17 +207,15 @@ export default function AdminDashboard() {
               <button className="logoutBtn" onClick={handleLogout}>🚪 Logout</button>
             </div>
           </div>
-
           <div className="dividerLine"></div>
-
           {/* ================= STATUS BOX ================= */}
           <div className="statusBox">
             <div className="welcomeText">
               Welcome, <strong className="blue">{user.username}</strong>
             </div>
             <div className="voteStatus">{votedCount} / {totalVoters} students voted</div>
+            <button className="viewStudentsBtn" onClick={() => setShowStudentsModal(true)}>👥 View All Students</button>
           </div>
-
           {/* ================= ADD NEW CANDIDATE ================= */}
           <div className="addSection">
             <h2 className="sectionTitle">Add New Candidate</h2>
@@ -245,7 +226,6 @@ export default function AdminDashboard() {
               <button onClick={openAdd} className="addBtn" disabled={submitting}>➕ Add Candidate</button>
             </div>
           </div>
-
           {/* ================= CANDIDATES GRID ================= */}
           <div className="grid">
             {candidates.map((c) => (
@@ -253,12 +233,12 @@ export default function AdminDashboard() {
                 key={c.id}
                 className="cardWrap"
                 whileHover={{
-                  scale: 1.05,                       // lift the card
-                  rotateX: -3,                        // subtle tilt
-                  rotateY: 3,                         // subtle tilt
+                  scale: 1.05, // lift the card
+                  rotateX: -3, // subtle tilt
+                  rotateY: 3, // subtle tilt
                   boxShadow: "0 25px 50px rgba(54, 209, 220, 0.6)", // glowing shadow
                 }}
-                whileTap={{ scale: 0.97 }}           // press feedback
+                whileTap={{ scale: 0.97 }} // press feedback
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
               >
                 <div className="card">
@@ -276,7 +256,6 @@ export default function AdminDashboard() {
               </motion.div>
             ))}
           </div>
-
           {/* ================= LIVE RESULTS ================= */}
           <div className="resultsSection">
             <h2 className="chartTitle">Live Election Results</h2>
@@ -293,11 +272,9 @@ export default function AdminDashboard() {
               </div>
             )}
           </div>
-
           {showPasswordModal && (
             <AdminPasswordModel onConfirm={handlePasswordConfirm} onClose={() => {setShowPasswordModal(false); setPendingAction(null); setSubmitting(false);}} />
           )}
-
           {/* ================= EDIT MODAL (NEW) ================= */}
           {showEditModal && editingCandidate && (
             <div className="overlay">
@@ -329,9 +306,45 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
+          {/* ================= VIEW STUDENTS MODAL ================= */}
+          {showStudentsModal && (
+            <div className="overlay">
+              <div className="modal">
+                <h3>All Students</h3>
+                {students.length === 0 ? (
+                  <p>No students yet.</p>
+                ) : (
+                  <div className="tableContainer">
+                    <table className="studentsTable">
+                      <thead>
+                        <tr>
+                          <th>Student ID</th>
+                          <th>Email</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {students.map((s) => (
+                          <tr key={s.id}>
+                            <td>{s.username}</td>
+                            <td>{s.email}</td>
+                            <td>{s.hasVoted ? 'Voted' : 'Not Voted'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                <div className="buttons">
+                  <button onClick={() => setShowStudentsModal(false)} className="cancel">
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
-
       {/* ================= STYLES ================= */}
       <style jsx>{`
         /* ================= ORIGINAL DESKTOP STYLES ================= */
@@ -350,7 +363,9 @@ export default function AdminDashboard() {
         .statusBox{text-align:center;max-width:600px;margin:0 auto 80px auto;padding:40px;background:rgba(255,255,255,0.08);border-radius:24px;backdrop-filter:blur(12px);box-shadow:0 15px 40px rgba(0,0,0,0.4);}
         .welcomeText{font-size:2.2rem;margin-bottom:15px;font-weight:600;}
         .welcomeText .blue{color:#36d1dc;font-weight:800;}
-        .voteStatus{font-size:2rem;font-weight:700;color:#36d1dc;}
+        .voteStatus{font-size:2rem;font-weight:700;color:#36d1dc; margin-bottom: 20px;}
+        .viewStudentsBtn{padding:12px 24px;border-radius:14px;border:none;font-weight:700;cursor:pointer;transition:all 0.3s ease;font-size:1rem;background:linear-gradient(135deg,#4caf50,#2e7d32);color:white;}
+        .viewStudentsBtn:hover{transform:translateY(-3px);box-shadow:0 10px 25px rgba(76,175,80,0.5);}
         .addSection{max-width:600px;margin:0 auto 100px auto;text-align:center;}
         .sectionTitle{font-size:2.4rem;color:#36d1dc;margin-bottom:40px;font-weight:700;}
         .form{display:flex;flex-direction:column;gap:20px;}
@@ -385,7 +400,6 @@ export default function AdminDashboard() {
         .chartContainer{max-width:900px;margin:0 auto;height:450px;}
         .winnerBox{margin-top:70px;padding:60px;background:rgba(255,215,0,0.25);border-radius:30px;font-size:3rem;font-weight:900;color:#ffd700;line-height:1.8;border:4px dashed #ffd700;box-shadow:0 20px 50px rgba(255,215,0,0.3);}
         .winnerName{color:#36d1dc;font-size:3.4rem;}
-
         /* ================= EDIT MODAL STYLES (NEW) ================= */
         .overlay {
           position: fixed;
@@ -401,7 +415,7 @@ export default function AdminDashboard() {
           padding: 40px;
           border-radius: 20px;
           width: 90%;
-          max-width: 420px;
+          max-width: 600px;
           text-align: center;
           color: white;
           box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
@@ -442,7 +456,28 @@ export default function AdminDashboard() {
         .cancel:hover {
           background: #777;
         }
-
+        /* ================= TABLE STYLES ================= */
+        .tableContainer {
+          max-height: 300px;
+          overflow-y: auto;
+          margin: 20px 0;
+        }
+        .studentsTable {
+          width: 100%;
+          border-collapse: collapse;
+        }
+        .studentsTable th,
+        .studentsTable td {
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          padding: 8px;
+          text-align: left;
+        }
+        .studentsTable th {
+          background: rgba(255, 255, 255, 0.1);
+          position: sticky;
+          top: 0;
+          z-index: 1;
+        }
         /* ================= LOADING STYLES ================= */
         .loading {
           position: absolute;
@@ -452,77 +487,64 @@ export default function AdminDashboard() {
           font-size: 1.5rem;
           color: #36d1dc;
         }
-        
+       
        /* ================= MOBILE FRIENDLY ================= */
 @media (max-width: 768px) {
-
   /* ===== PAGE FIX ===== */
   .page {
     padding: 30px 12px 40px;
     min-height: 100vh;
   }
-
   /* ===== TOP BAR FIX ===== */
   .topBar {
-    position: relative;       /* IMPORTANT */
+    position: relative; /* IMPORTANT */
     flex-direction: column;
     gap: 10px;
     padding: 15px 10px;
   }
-
   .logoImg {
     width: 80px;
     height: 80px;
     border-width: 3px;
   }
-
   .mainTitle {
     font-size: 1.6rem;
     padding-left: 0;
     text-align: center;
   }
-
   .topButtons {
     width: 100%;
     justify-content: center;
     gap: 10px;
   }
-
   .topButtons button {
     padding: 10px 18px;
     font-size: 0.95rem;
   }
-
   /* ===== REMOVE DIVIDER ===== */
   .dividerLine {
     display: none;
   }
-
   /* ===== STATUS BOX ===== */
   .statusBox {
     margin-top: 20px;
     padding: 25px 15px;
   }
-
   .welcomeText {
     font-size: 1.5rem;
     display: block;
   }
-
   .voteStatus {
     font-size: 1.3rem;
   }
-
   /* ===== SEARCH (VOTE PAGE) ===== */
   .searchWrapper {
     width: 100%;
   }
-
   .searchInput {
     font-size: 1rem;
     padding: 12px 18px 12px 40px;
   }
-
   /* ===== GRID & CARDS ===== */
   .grid {
     flex-direction: column;
@@ -530,71 +552,57 @@ export default function AdminDashboard() {
     gap: 20px;
     margin: 40px 0;
   }
-
   .cardWrap {
     width: 100%;
     max-width: 360px;
   }
-
   .card {
     width: 100%;
     padding: 20px;
   }
-
   .candidateImg {
     width: 120px;
     height: 120px;
   }
-
   .desc {
     font-size: 1rem;
   }
-
   .votes {
     font-size: 1.4rem;
   }
-
   .voteBtn,
   .editBtn,
   .deleteBtn {
     font-size: 1rem;
     padding: 12px;
   }
-
   /* ===== RESULTS ===== */
   .resultsSection {
     padding: 25px 15px;
     margin-top: 60px;
   }
-
   .chartTitle {
     font-size: 1.7rem;
   }
-
   .chartContainer {
     height: 320px;
   }
-
   .winnerBox {
     font-size: 1.8rem;
     padding: 30px;
   }
-
   .winnerName {
     font-size: 2rem;
   }
-
   .waitingMessage {
     font-size: 1.2rem;
     margin: 50px 0;
   }
-
   /* ===== LOADING MOBILE ===== */
   .loading {
     font-size: 1.2rem;
   }
 }
-
       `}</style>
     </div>
   );
