@@ -3,43 +3,53 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { auth, db } from "../../../lib/firebase";
-import { listenAuth, logoutUser } from "../../../lib/firebaseFunctions";
+import {
+  listenAuth,
+  logoutUser,
+  addCandidateFirestore,
+  updateCandidate,
+  deleteCandidate,
+} from "../../../lib/firebaseFunctions";
 import { Candidate, AppUser } from "../../../lib/types";
 import ResultsChart from "../../../components/ResultsChart";
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, doc, onSnapshot, Timestamp } from "firebase/firestore";
 import AdminPasswordModel from "../../../components/AdminPasswordModel";
 
 type ExtendedAppUser = AppUser & { id: string; hasVoted?: boolean; votedFor?: string; email?: string };
+type ElectionSettings = { startDate: Timestamp; endDate: Timestamp };
 
 export default function AdminDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<AppUser | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [students, setStudents] = useState<ExtendedAppUser[]>([]);
   const [totalVoters, setTotalVoters] = useState(0);
   const [votedCount, setVotedCount] = useState(0);
-  const [students, setStudents] = useState<ExtendedAppUser[]>([]);
+
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
-  const [newImage, setNewImage] = useState("");
+  const [newImage, setNewImage] = useState<File | null>(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  
-  const [pendingAction, setPendingAction] = useState<
-    | { type: "add"; data: { name: string; description: string; image: string } }
-    | { type: "edit"; data: { id: string; name: string; description: string; image: string } }
-    | { type: "delete"; data: { id: string } }
-    | { type: "reset" }
-    | null
-  >(null);
-  // New state for edit modal
+
+  const [pendingAction, setPendingAction] = useState<{
+    type: "add" | "edit" | "delete" | "reset" | "settings";
+    data?: any;
+  } | null>(null);
+
+  const [settings, setSettings] = useState<ElectionSettings | null>(null);
+  const [newStartDate, setNewStartDate] = useState("");
+  const [newEndDate, setNewEndDate] = useState("");
+
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingCandidate, setEditingCandidate] = useState<Candidate | null>(null);
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
-  const [editImage, setEditImage] = useState("");
-  // New state for view students modal
+  const [editImage, setEditImage] = useState<string | File>("");
+
   const [showStudentsModal, setShowStudentsModal] = useState(false);
-  /* ================= AUTH ================= */
+
+  // ================= AUTH =================
   useEffect(() => {
     const unsub = listenAuth((u) => {
       if (!u) return router.push("/admin/login");
@@ -48,7 +58,8 @@ export default function AdminDashboard() {
     });
     return () => unsub();
   }, [router]);
-  /* ================= USERS ================= */
+
+  // ================= USERS =================
   useEffect(() => {
     return onSnapshot(collection(db, "users"), (snap) => {
       const studentList: ExtendedAppUser[] = [];
@@ -62,44 +73,44 @@ export default function AdminDashboard() {
           studentList.push({ id: d.id, ...(u as AppUser) });
         }
       });
+      setStudents(studentList);
       setTotalVoters(total);
       setVotedCount(voted);
-      setStudents(studentList);
     });
   }, []);
-  /* ================= CANDIDATES ================= */
+
+  // ================= CANDIDATES =================
   useEffect(() => {
     return onSnapshot(collection(db, "candidates"), (snap) => {
-      setCandidates(
-        snap.docs.map((d) => ({
-          id: d.id,
-          ...(d.data() as Omit<Candidate, "id">),
-        }))
-      );
+      setCandidates(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Candidate, "id">) })));
     });
   }, []);
-  /* ================= ADD ================= */
+
+  // ================= ELECTION SETTINGS =================
+  useEffect(() => {
+    return onSnapshot(doc(db, "settings", "election"), (snap) => {
+      setSettings(snap.data() as ElectionSettings | null);
+    });
+  }, []);
+
+  // ================= ADD =================
   const openAdd = () => {
     if (submitting) return;
     const trimmedName = newName.trim();
     const trimmedDesc = newDesc.trim();
-    const trimmedImage = newImage.trim();
-    if (!trimmedName || !trimmedDesc || !trimmedImage) {
+    if (!trimmedName || !trimmedDesc || !newImage) {
       alert("All fields are required!");
       return;
     }
     setSubmitting(true);
     setPendingAction({
       type: "add",
-      data: {
-        name: trimmedName,
-        description: trimmedDesc,
-        image: trimmedImage,
-      },
+      data: { name: trimmedName, description: trimmedDesc, image: newImage },
     });
     setShowPasswordModal(true);
   };
-  /* ================= EDIT ================= */
+
+  // ================= EDIT =================
   const openEdit = (c: Candidate) => {
     setEditingCandidate(c);
     setEditName(c.name);
@@ -107,6 +118,7 @@ export default function AdminDashboard() {
     setEditImage(c.image);
     setShowEditModal(true);
   };
+
   const handleEditSubmit = () => {
     if (editName === editingCandidate?.name && editDesc === editingCandidate?.description && editImage === editingCandidate?.image) {
       setShowEditModal(false);
@@ -114,82 +126,124 @@ export default function AdminDashboard() {
     }
     setPendingAction({
       type: "edit",
-      data: { id: editingCandidate!.id!, name: editName.trim(), description: editDesc.trim(), image: editImage.trim() },
+      data: { id: editingCandidate!.id!, name: editName.trim(), description: editDesc.trim(), image: editImage },
     });
     setShowEditModal(false);
     setShowPasswordModal(true);
   };
-  /* ================= DELETE ================= */
+
+  // ================= DELETE =================
   const openDelete = (id: string) => {
     if (!confirm("⚠️ Delete this candidate permanently?")) return;
     setPendingAction({ type: "delete", data: { id } });
     setShowPasswordModal(true);
   };
-  /* ================= RESET ================= */
+
+  // ================= RESET =================
   const openReset = () => {
     if (!confirm("⚠️ RESET ENTIRE ELECTION?\nAll votes will be lost forever!")) return;
     setPendingAction({ type: "reset" });
     setShowPasswordModal(true);
   };
-  /* ================= CONFIRM ================= */
-  const handlePasswordConfirm = async (password?: string) => {
-    if (!pendingAction || !auth.currentUser) return;
+
+  // ================= UPDATE SETTINGS =================
+  const handleUpdateSettings = () => {
+    if (!newStartDate || !newEndDate) {
+      alert("Both start and end dates are required!");
+      return;
+    }
+    if (new Date(newStartDate) >= new Date(newEndDate)) {
+      alert("Start date must be before end date!");
+      return;
+    }
+    setPendingAction({ type: "settings", data: { startDate: newStartDate, endDate: newEndDate } });
+    setShowPasswordModal(true);
+  };
+
+  // ================= CONFIRM PASSWORD =================
+  const handlePasswordConfirm = async () => {
+    if (!pendingAction) return;
     try {
-      const idToken = await auth.currentUser.getIdToken();
-      let res: Response | undefined;
+      // ================= ADD =================
       if (pendingAction.type === "add") {
-        res = await fetch("/api/admin/add-candidate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...pendingAction.data, idToken }),
+        const file = pendingAction.data.image as File;
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
         });
-      } else if (pendingAction.type === "edit") {
-        res = await fetch("/api/admin/update-candidate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...pendingAction.data, idToken }),
-        });
-      } else if (pendingAction.type === "delete") {
-        res = await fetch("/api/admin/delete-candidate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...pendingAction.data, idToken }),
-        });
-      } else if (pendingAction.type === "reset") {
-        res = await fetch("/api/admin/reset-election", {
+        await addCandidateFirestore(pendingAction.data.name, pendingAction.data.description, base64);
+        alert("Candidate added successfully 🎉");
+        setNewName("");
+        setNewDesc("");
+        setNewImage(null);
+      }
+
+      // ================= EDIT =================
+      if (pendingAction.type === "edit") {
+        const img = pendingAction.data.image instanceof File
+          ? await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(pendingAction.data.image);
+            })
+          : pendingAction.data.image;
+        await updateCandidate(pendingAction.data.id, pendingAction.data.name, pendingAction.data.description, img);
+        alert("Candidate updated successfully!");
+      }
+
+      // ================= DELETE =================
+      if (pendingAction.type === "delete") {
+        await deleteCandidate(pendingAction.data.id);
+        alert("Candidate deleted successfully.");
+      }
+
+      // ================= RESET =================
+      if (pendingAction.type === "reset") {
+        const idToken = await auth.currentUser?.getIdToken();
+        await fetch("/api/admin/reset-election", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ idToken }),
         });
-      }
-      if (!res || !res.ok) throw new Error("Action failed");
-      if (pendingAction.type === "add") {
-        setNewName("");
-        setNewDesc("");
-        setNewImage("");
-        alert("Candidate added successfully 🎉");
-      } else if (pendingAction.type === "edit") {
-        alert("Candidate updated successfully!");
-      } else if (pendingAction.type === "delete") {
-        alert("Candidate deleted successfully.");
-      } else if (pendingAction.type === "reset") {
         alert("Election reset successfully!");
       }
+
+      // ================= SETTINGS =================
+      if (pendingAction.type === "settings") {
+        const idToken = await auth.currentUser?.getIdToken();
+        await fetch("/api/admin/update-settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...pendingAction.data, idToken }),
+        });
+        alert("Election dates updated successfully!");
+        setNewStartDate("");
+        setNewEndDate("");
+      }
+
     } catch (err: any) {
       alert(err.message || "Operation failed");
     } finally {
-      setShowPasswordModal(false);
-      setPendingAction(null);
       setSubmitting(false);
+      setPendingAction(null);
+      setShowPasswordModal(false);
+      setShowEditModal(false);
     }
   };
+
   const handleLogout = async () => {
     await logoutUser();
     router.push("/admin/login");
   };
-  const electionDone = votedCount === totalVoters && totalVoters > 0;
+
+  const now = Date.now();
+  const isElectionEnded = settings && now >= settings.endDate.toMillis();
   const maxVotes = Math.max(...candidates.map((c) => c.votes || 0), 0);
   const winners = candidates.filter((c) => (c.votes || 0) === maxVotes && maxVotes > 0);
+
   return (
     <div className="page">
       {!user ? (
@@ -216,13 +270,24 @@ export default function AdminDashboard() {
             <div className="voteStatus">{votedCount} / {totalVoters} students voted</div>
             <button className="viewStudentsBtn" onClick={() => setShowStudentsModal(true)}>👥 View All Students</button>
           </div>
+          {/* ================= ELECTION SETTINGS SECTION ================= */}
+          <div className="settingsSection statusBox">
+            <h2 className="sectionTitle">Election Dates</h2>
+            <p>Current Start: {settings?.startDate?.toDate().toLocaleString() || "Not set"}</p>
+            <p>Current End: {settings?.endDate?.toDate().toLocaleString() || "Not set"}</p>
+            <div className="form">
+              <input className="shortInput" type="datetime-local" value={newStartDate} onChange={(e) => setNewStartDate(e.target.value)} />
+              <input className="shortInput" type="datetime-local" value={newEndDate} onChange={(e) => setNewEndDate(e.target.value)} />
+              <button className="addBtn shortBtn" onClick={handleUpdateSettings}>Update Dates</button>
+            </div>
+          </div>
           {/* ================= ADD NEW CANDIDATE ================= */}
           <div className="addSection">
             <h2 className="sectionTitle">Add New Candidate</h2>
             <div className="form">
               <input placeholder="Candidate Name" value={newName} onChange={(e) => setNewName(e.target.value)} />
               <input placeholder="Description" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} />
-              <input placeholder="Image URL" value={newImage} onChange={(e) => setNewImage(e.target.value)} />
+              <input type="file" accept="image/*" onChange={(e) => setNewImage(e.target.files?.[0] || null)} />
               <button onClick={openAdd} className="addBtn" disabled={submitting}>➕ Add Candidate</button>
             </div>
           </div>
@@ -246,11 +311,11 @@ export default function AdminDashboard() {
                   <h2 className="blue">{c.name}</h2>
                   <p className="desc">{c.description}</p>
                   <p className="votes">
-                    <strong>{c.votes || 0}</strong> vote{c.votes !== 1 ? "s" : ""}
+                    <strong>{c.votes ?? 0}</strong> vote{(c.votes ?? 0) !== 1 ? "s" : ""}
                   </p>
                   <div className="actions">
                     <button className="editBtn" onClick={() => openEdit(c)}>✏️ Edit</button>
-                    <button className="deleteBtn" onClick={() => openDelete(c.id!)}>🗑️ Delete</button>
+                    <button className="deleteBtn" onClick={() => openDelete(c.id!)}>🗑 Delete</button>
                   </div>
                 </div>
               </motion.div>
@@ -262,7 +327,7 @@ export default function AdminDashboard() {
             <div className="chartContainer">
               <ResultsChart candidates={candidates} />
             </div>
-            {electionDone && (
+            {isElectionEnded && (
               <div className="winnerBox">
                 🏆 <strong>ELECTION COMPLETE!</strong> 🏆<br /><br />
                 Winner{winners.length > 1 ? "s (Tie)" : ""}:<br />
@@ -291,10 +356,11 @@ export default function AdminDashboard() {
                     value={editDesc}
                     onChange={(e) => setEditDesc(e.target.value)}
                   />
+                  {typeof editImage === "string" && <img src={editImage} alt="Current" style={{ width: "100px", marginBottom: "10px" }} />}
                   <input
-                    placeholder="Image URL"
-                    value={editImage}
-                    onChange={(e) => setEditImage(e.target.value)}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setEditImage(e.target.files?.[0] ?? editImage)}
                   />
                 </div>
                 <div className="buttons">
@@ -487,7 +553,7 @@ export default function AdminDashboard() {
           font-size: 1.5rem;
           color: #36d1dc;
         }
-       
+      
        /* ================= MOBILE FRIENDLY ================= */
 @media (max-width: 768px) {
   /* ===== PAGE FIX ===== */

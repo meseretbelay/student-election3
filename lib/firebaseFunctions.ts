@@ -1,5 +1,6 @@
 // lib/firebaseFunctions.ts
 import { auth, db } from "./firebase";
+import { Timestamp } from "firebase/firestore";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -94,7 +95,8 @@ async function requireAdmin() {
   if (!snap.exists() || !snap.data()?.isAdmin) throw new Error("Admin only");
 }
 
-export async function addCandidate(name: string, description: string, image: string) {
+/* ===== NEW ADD CANDIDATE FUNCTION (REPLACES addCandidateFirestore) ===== */
+export async function addCandidateFirestore(name: string, description: string, image: string) {
   await requireAdmin();
   await addDoc(collection(db, "candidates"), { name, description, image, votes: 0 });
 }

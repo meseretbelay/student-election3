@@ -9,39 +9,18 @@ if (!getApps().length) {
   let privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
   if (!projectId || !clientEmail || !privateKey) {
-    throw new Error(
-      "Missing Firebase Admin credentials. Check .env.local has FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY"
-    );
+    throw new Error("Missing Firebase Admin credentials");
   }
 
-  // Critical fix: Clean and normalize private key
-  if (privateKey.includes("\\n")) {
-    privateKey = privateKey.replace(/\\n/g, "\n");
-  }
+  privateKey = privateKey.replace(/\\n/g, "\n");
 
-  // Remove any surrounding quotes if present
-  privateKey = privateKey.trim();
-  if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
-    privateKey = privateKey.slice(1, -1);
-  }
-
-  // Optional: Log first/last few chars to debug (remove later)
-  console.log("Private key starts with:", privateKey.slice(0, 30));
-  console.log("Private key ends with:", privateKey.slice(-30));
-
-  try {
-    initializeApp({
-      credential: cert({
-        projectId,
-        clientEmail,
-        privateKey,
-      }),
-    });
-    console.log("Firebase Admin initialized successfully!");
-  } catch (error: any) {
-    console.error("Firebase Admin init failed:", error.message);
-    throw error; // Re-throw to crash route and show clear error
-  }
+  initializeApp({
+    credential: cert({
+      projectId,
+      clientEmail,
+      privateKey,
+    }),
+  });
 }
 
 export const getAdminDb = () => getFirestore();

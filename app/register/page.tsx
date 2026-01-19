@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { registerUser } from "../../lib/firebaseFunctions";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "../../lib/firebase";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -42,6 +44,14 @@ export default function RegisterPage() {
     }
 
     try {
+      const q = query(collection(db, "users"), where("studentId", "==", idUpper));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        setError("This Student ID is already in use.");
+        setLoading(false);
+        return;
+      }
+
       await registerUser(username.trim(), idUpper, email.trim(), password.trim());
       router.push("/login");
     } catch (err: any) {

@@ -11,7 +11,12 @@ import {
 } from "../../lib/firebaseFunctions";
 import { Candidate, AppUser } from "../../lib/types";
 import ResultsChart from "../../components/ResultsChart";
-import { collection, onSnapshot, Unsubscribe } from "firebase/firestore";
+import { collection, doc, onSnapshot, Unsubscribe, Timestamp } from "firebase/firestore";
+
+type ElectionSettings = {
+  startDate: Timestamp;
+  endDate: Timestamp;
+};
 
 export default function VotePage() {
   const router = useRouter();
@@ -24,9 +29,11 @@ export default function VotePage() {
   const [loading, setLoading] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [settings, setSettings] = useState<ElectionSettings | null>(null);
 
   const [unsubUsers, setUnsubUsers] = useState<Unsubscribe | null>(null);
   const [unsubCandidates, setUnsubCandidates] = useState<Unsubscribe | null>(null);
+  const [unsubSettings, setUnsubSettings] = useState<Unsubscribe | null>(null);
 
   // Auth listener
   useEffect(() => {
@@ -93,19 +100,38 @@ export default function VotePage() {
     return () => unsub();
   }, [loading, user]);
 
+  // Real-time election settings
+  useEffect(() => {
+    if (loading || !user) return;
+
+    const unsub = onSnapshot(
+      doc(db, "settings", "election"),
+      (snapshot) => {
+        setSettings(snapshot.data() as ElectionSettings | null);
+      },
+      (error) => {
+        console.error("Settings snapshot error:", error);
+      }
+    );
+    setUnsubSettings(() => unsub);
+    return () => unsub();
+  }, [loading, user]);
+
   // Cleanup
   useEffect(() => {
     return () => {
       unsubUsers?.();
       unsubCandidates?.();
+      unsubSettings?.();
     };
-  }, [unsubUsers, unsubCandidates]);
+  }, [unsubUsers, unsubCandidates, unsubSettings]);
 
   const handleLogout = async () => {
     setLoggingOut(true);
     try {
       unsubUsers?.();
       unsubCandidates?.();
+      unsubSettings?.();
       await logoutUser();
       router.push("/login");
     } catch (err) {
@@ -114,7 +140,7 @@ export default function VotePage() {
   };
 
   const handleVote = async (candidateId: string) => {
-    if (!user || user.hasVoted) return;
+    if (!user || user.hasVoted || !isVotingOpen) return;
 
     try {
       await submitVote(user.uid, candidateId);
@@ -148,7 +174,11 @@ export default function VotePage() {
 
   if (!user) return null;
 
-  const isElectionComplete = votedCount === totalVoters && totalVoters > 0;
+  const now = Date.now();
+  const isVotingStarted = settings && now >= settings.startDate.toMillis();
+  const isVotingOpen = isVotingStarted && settings && now < settings.endDate.toMillis();
+  const isElectionEnded = settings && now >= settings.endDate.toMillis();
+
   const maxVotes = Math.max(...candidates.map((c) => c.votes || 0), 0);
   const winners = candidates.filter((c) => (c.votes || 0) === maxVotes && maxVotes > 0);
 
@@ -199,51 +229,65 @@ export default function VotePage() {
       {/* Message */}
       {message && <div className={`message ${message.type}`}>{message.text}</div>}
 
-      {/* Candidates Grid */}
-      <div className="grid">
-        {filteredCandidates.map((c) => (
-          <motion.div
-            key={c.id}
-            className="cardWrap"
-            whileHover={{
-              scale: 1.05,
-              rotateX: -3,
-              rotateY: 3,
-              boxShadow: "0 25px 50px rgba(54, 209, 220, 0.6)",
-            }}
-            whileTap={{ scale: 0.97 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          >
-            <div className="card">
-              <img src={c.image} alt={c.name} className="candidateImg" />
-              <h2 className="blue">{c.name}</h2>
-              <p className="desc">{c.description}</p>
-              <p className="votes">
-                <strong>{c.votes || 0}</strong> vote{c.votes !== 1 ? "s" : ""}
-              </p>
-              {!user.hasVoted ? (
-                <button className="voteBtn" onClick={() => handleVote(c.id!)}>
-                  Vote
-                </button>
-              ) : (
-                <button className="voteBtn voted" disabled>
-                  Already Voted ✓
-                </button>
-              )}
-            </div>
-          </motion.div>
-        ))}
-      </div>
+      {!settings ? (
+        <div className="waitingMessage">Election settings not configured yet.</div>
+      ) : !isVotingStarted ? (
+        <div className="waitingMessage">
+          Voting has not started yet. Starts on {settings.startDate.toDate().toLocaleString()}.
+        </div>
+      ) : !isVotingOpen ? (
+        <div className="waitingMessage">Voting has ended. See results below.</div>
+      ) : user.hasVoted ? (
+        <div className="waitingMessage">You have already voted. Wait for results.</div>
+      ) : null}
+
+      {/* Candidates Grid (show only if voting open or ended) */}
+      {(isVotingOpen || isElectionEnded) && (
+        <div className="grid">
+          {filteredCandidates.map((c) => (
+            <motion.div
+              key={c.id}
+              className="cardWrap"
+              whileHover={{
+                scale: 1.05,
+                rotateX: -3,
+                rotateY: 3,
+                boxShadow: "0 25px 50px rgba(54, 209, 220, 0.6)",
+              }}
+              whileTap={{ scale: 0.97 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            >
+              <div className="card">
+                <img src={c.image} alt={c.name} className="candidateImg" />
+                <h2 className="blue">{c.name}</h2>
+                <p className="desc">{c.description}</p>
+                <p className="votes">
+                  <strong>{c.votes || 0}</strong> vote{c.votes !== 1 ? "s" : ""}
+                </p>
+                {!user.hasVoted && isVotingOpen ? (
+                  <button className="voteBtn" onClick={() => handleVote(c.id!)}>
+                    Vote
+                  </button>
+                ) : (
+                  <button className="voteBtn voted" disabled>
+                    {user.hasVoted ? "Already Voted ✓" : "Voting Closed"}
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
 
       {/* Live Results */}
       {candidates.length > 0 && (
         <div className="resultsSection">
-          <h2 className="chartTitle">Live Results</h2>
+          <h2 className="chartTitle">Live Election Results</h2>
           <div className="chartContainer">
             <ResultsChart candidates={candidates} />
           </div>
 
-          {isElectionComplete && (
+          {isElectionEnded && (
             <div className="winnerBox">
               🏆 <strong>ELECTION COMPLETE!</strong> 🏆<br /><br />
               Winner{winners.length > 1 ? "s (Tie)" : ""}:<br />
@@ -263,14 +307,14 @@ export default function VotePage() {
         </div>
       )}
 
-      {!isElectionComplete && totalVoters > 0 && (
+      {!isElectionEnded && totalVoters > 0 && (
         <div className="waitingMessage">
-          Waiting for all {totalVoters} students to vote...<br />
+          Waiting for election to end on {settings?.endDate.toDate().toLocaleString()}...<br />
           ({votedCount} have voted so far)
         </div>
       )}
 
-      <style jsx>{`
+<style jsx>{`
         .page {
           min-height: 100dvh;
           padding: 230px 20px 40px;
