@@ -43,6 +43,24 @@ export default function RegisterPage() {
       return;
     }
 
+    const pass = password.trim();
+    if (pass.length < 8) {
+      setError("Password must be at least 8 characters long.");
+      setLoading(false);
+      return;
+    }
+
+    const hasUpper = /[A-Z]/.test(pass);
+    const hasLower = /[a-z]/.test(pass);
+    const hasNumber = /\d/.test(pass);
+    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(pass);
+
+    if (!hasUpper || !hasLower || !hasNumber || !hasSpecial) {
+      setError("Password must include at least one uppercase letter, one lowercase letter, one number, and one special character.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const q = query(collection(db, "users"), where("studentId", "==", idUpper));
       const querySnapshot = await getDocs(q);
@@ -52,7 +70,7 @@ export default function RegisterPage() {
         return;
       }
 
-      await registerUser(username.trim(), idUpper, email.trim(), password.trim());
+      await registerUser(username.trim(), idUpper, email.trim(), pass);
       router.push("/login");
     } catch (err: any) {
       setError(err.message || "Registration failed");
