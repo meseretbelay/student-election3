@@ -22,6 +22,8 @@ import {
   runTransaction,
   increment,
   writeBatch,
+  query,
+  where,
 } from "firebase/firestore";
 
 /* ---------- TYPES ---------- */
@@ -50,9 +52,20 @@ export async function registerUser(
   password: string
 ) {
   const cred = await createUserWithEmailAndPassword(auth, email, password);
+  const uid = cred.user.uid;
 
-  await setDoc(doc(db, "users", cred.user.uid), {
-    uid: cred.user.uid,
+  // Check for duplicate studentId after auth creation (now authenticated)
+  const q = query(collection(db, "users"), where("studentId", "==", studentId));
+  const snap = await getDocs(q);
+
+  if (!snap.empty) {
+    // Clean up the newly created auth user
+    await cred.user.delete();
+    throw new Error("Student ID already registered");
+  }
+
+  await setDoc(doc(db, "users", uid), {
+    uid,
     username,
     studentId,
     email,

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { registerUser } from "../../lib/firebaseFunctions";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { collection, query, where, getDocs } from "firebase/firestore";
+// Removed unnecessary imports for query since check is moved to registerUser
 import { db } from "../../lib/firebase";
 
 export default function RegisterPage() {
@@ -62,14 +62,7 @@ export default function RegisterPage() {
     }
 
     try {
-      const q = query(collection(db, "users"), where("studentId", "==", idUpper));
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        setError("This Student ID is already in use.");
-        setLoading(false);
-        return;
-      }
-
+      // Removed client-side duplicate check - now handled in registerUser
       await registerUser(username.trim(), idUpper, email.trim(), pass);
       router.push("/login");
     } catch (err: any) {
