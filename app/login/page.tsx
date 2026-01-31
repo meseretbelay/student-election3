@@ -68,11 +68,19 @@ export default function LoginPage() {
             {loading ? "Logging in..." : "Login"}
           </button>
 
+          {/* ===== REGISTER ===== */}
           <p className="link">
             Don't have an account? <Link href="/register">Register</Link>
           </p>
 
-          <p className="link" style={{ marginTop: "20px" }}>
+          {/* ===== CANDIDATE LOGIN (ADDED) ===== */}
+          <p className="link candidateLink">
+            Are you a candidate?{" "}
+            <Link href="/candidate/login">Candidate Login</Link>
+          </p>
+
+          {/* ===== ADMIN LOGIN ===== */}
+          <p className="link adminLink">
             <Link href="/admin/login">→ Admin Login</Link>
           </p>
         </form>
@@ -81,7 +89,6 @@ export default function LoginPage() {
       <style jsx>{`
         .page {
           min-height: 100vh;
-          width: 100%;
           display: flex;
           justify-content: center;
           align-items: center;
@@ -96,14 +103,12 @@ export default function LoginPage() {
           100% { background-position: 0% 50%; }
         }
 
-        /* === wrapper same as register === */
         .cardWrapper {
           width: 100%;
           max-width: 600px;
         }
 
         .card {
-          width: 100%;
           background: rgba(255, 255, 255, 0.12);
           padding: 50px;
           border-radius: 25px;
@@ -114,24 +119,20 @@ export default function LoginPage() {
           color: #fff;
           backdrop-filter: blur(25px);
           box-shadow: 0 35px 70px rgba(0, 0, 0, 0.5);
-          box-sizing: border-box;
         }
 
         .logo {
           width: 130px;
           height: 130px;
           border-radius: 50%;
-          object-fit: cover;
           border: 4px solid #36d1dc;
-          margin-bottom: 15px;
+          object-fit: cover;
           box-shadow: 0 8px 25px rgba(54, 209, 220, 0.3);
         }
 
         h1 {
-          margin: 0 0 20px 0;
           font-size: 2.2rem;
           font-weight: 700;
-          text-align: center;
         }
 
         input,
@@ -143,8 +144,6 @@ export default function LoginPage() {
           border-radius: 22px;
           font-size: 1.1rem;
           border: none;
-          outline: none;
-          box-sizing: border-box;
         }
 
         input {
@@ -152,44 +151,34 @@ export default function LoginPage() {
           color: #fff;
         }
 
-        input::placeholder {
-          color: #f0f0f0;
-        }
-
         button {
           background: linear-gradient(135deg, #36d1dc, #5b86e5);
-          color: #fff;
+          color: white;
           font-weight: 700;
           cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        button:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
-        }
-
-        button:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
         }
 
         .error {
           color: #ff6b6b;
-          font-size: 1rem;
           text-align: center;
-          margin: 0;
         }
 
         .link {
-          margin-top: 15px;
           font-size: 1rem;
           text-align: center;
         }
 
-        .link a {
+        .candidateLink a {
+          color: #ffd93d;
+          font-weight: 700;
+        }
+
+        .adminLink a {
           color: #36d1dc;
           font-weight: 600;
+        }
+
+        .link a {
           text-decoration: none;
         }
 
@@ -197,36 +186,12 @@ export default function LoginPage() {
           text-decoration: underline;
         }
 
-        .link a:visited {
-          color: #36d1dc;
-        }
-
-        /* ===== MOBILE RESPONSIVE ===== */
         @media (max-width: 480px) {
           .card {
             padding: 35px 20px;
-            border-radius: 20px;
-            gap: 15px;
           }
-
-          .logo {
-            width: 100px;
-            height: 100px;
-          }
-
           h1 {
-            font-size: 1.8rem;
-          }
-
-          input,
-          button {
-            height: 50px;
-            font-size: 1rem;
-            border-radius: 18px;
-          }
-
-          .link {
-            font-size: 0.85rem;
+            font-size: 1.7rem;
           }
         }
       `}</style>

@@ -11,7 +11,7 @@ import {
 } from "../../lib/firebaseFunctions";
 import { Candidate, AppUser } from "../../lib/types";
 import ResultsChart from "../../components/ResultsChart";
-import { collection, doc, onSnapshot, Unsubscribe, Timestamp } from "firebase/firestore";
+import { collection, doc, onSnapshot, Unsubscribe, Timestamp, getDocs, query, where } from "firebase/firestore";
 
 type ElectionSettings = {
   startDate: Timestamp;
@@ -27,7 +27,6 @@ export default function VotePage() {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
   const [loading, setLoading] = useState(true);
-
   const [searchQuery, setSearchQuery] = useState("");
   const [settings, setSettings] = useState<ElectionSettings | null>(null);
 
@@ -35,11 +34,11 @@ export default function VotePage() {
   const [unsubCandidates, setUnsubCandidates] = useState<Unsubscribe | null>(null);
   const [unsubSettings, setUnsubSettings] = useState<Unsubscribe | null>(null);
 
-  // Auth listener
+  // ------------------ AUTH ------------------
   useEffect(() => {
     const unsub = listenAuth((currentUser) => {
       if (!currentUser) {
-        router.push("/login");
+        router.push("/candidate/login");
         return;
       }
       if (currentUser.isAdmin) {
@@ -52,7 +51,7 @@ export default function VotePage() {
     return () => unsub();
   }, [router]);
 
-  // Real-time voter count
+  // ------------------ REAL-TIME VOTER COUNT ------------------
   useEffect(() => {
     if (loading || !user) return;
 
@@ -79,7 +78,7 @@ export default function VotePage() {
     return () => unsub();
   }, [loading, user]);
 
-  // Real-time candidates
+  // ------------------ REAL-TIME CANDIDATES ------------------
   useEffect(() => {
     if (loading || !user) return;
 
@@ -88,6 +87,11 @@ export default function VotePage() {
       (snapshot) => {
         const cands: Candidate[] = snapshot.docs.map((doc) => ({
           id: doc.id,
+          name: "",
+          votes: 0,
+          status: "pending",
+          image: "",
+          description: "",
           ...doc.data(),
         } as Candidate));
         setCandidates(cands);
@@ -100,7 +104,7 @@ export default function VotePage() {
     return () => unsub();
   }, [loading, user]);
 
-  // Real-time election settings
+  // ------------------ REAL-TIME ELECTION SETTINGS ------------------
   useEffect(() => {
     if (loading || !user) return;
 
@@ -117,7 +121,7 @@ export default function VotePage() {
     return () => unsub();
   }, [loading, user]);
 
-  // Cleanup
+  // ------------------ CLEANUP ------------------
   useEffect(() => {
     return () => {
       unsubUsers?.();
@@ -126,6 +130,7 @@ export default function VotePage() {
     };
   }, [unsubUsers, unsubCandidates, unsubSettings]);
 
+  // ------------------ LOGOUT ------------------
   const handleLogout = async () => {
     setLoggingOut(true);
     try {
@@ -133,12 +138,13 @@ export default function VotePage() {
       unsubCandidates?.();
       unsubSettings?.();
       await logoutUser();
-      router.push("/login");
+      router.push("/candidate/login");
     } catch (err) {
-      router.push("/login");
+      router.push("/candidate/login");
     }
   };
 
+  // ------------------ VOTE ------------------
   const handleVote = async (candidateId: string) => {
     if (!user || user.hasVoted || !isVotingOpen) return;
 
@@ -182,14 +188,13 @@ export default function VotePage() {
   const maxVotes = Math.max(...candidates.map((c) => c.votes || 0), 0);
   const winners = candidates.filter((c) => (c.votes || 0) === maxVotes && maxVotes > 0);
 
-  // Filter candidates by search query
   const filteredCandidates = candidates.filter((c) =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase())
+    c.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <div className="page">
-      {/* Fixed Top Bar */}
+      {/* Top Bar */}
       <div className="topBar">
         <div className="topLeftLogo">
           <img src="/images/mau.jpg" alt="MAU Logo" className="logoImg" />
@@ -213,7 +218,6 @@ export default function VotePage() {
           {votedCount} / {totalVoters} students have voted
         </div>
 
-        {/* Search Input */}
         <div className="searchWrapper">
           <span className="searchIcon">🔍</span>
           <input
@@ -241,7 +245,7 @@ export default function VotePage() {
         <div className="waitingMessage">You have already voted. Wait for results.</div>
       ) : null}
 
-      {/* Candidates Grid (show only if voting open or ended) */}
+      {/* Candidates Grid */}
       {(isVotingOpen || isElectionEnded) && (
         <div className="grid">
           {filteredCandidates.map((c) => (
@@ -258,12 +262,15 @@ export default function VotePage() {
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
               <div className="card">
-                <img src={c.image} alt={c.name} className="candidateImg" />
-                <h2 className="blue">{c.name}</h2>
-                <p className="desc">{c.description}</p>
+                <img src={c.image || "/images/default-user.png"} alt={c.name} className="candidateImg" />
+                <h2 className="blue">{c.name || "Unnamed Candidate"}</h2>
+                <p className="desc">{c.description || "No description provided."}</p>
                 <p className="votes">
                   <strong>{c.votes || 0}</strong> vote{c.votes !== 1 ? "s" : ""}
                 </p>
+                {c.status && c.status !== "pending" && (
+                  <p className={`statusLabel ${c.status}`}>Status: {c.status?.toUpperCase()}</p>
+                )}
                 {!user.hasVoted && isVotingOpen ? (
                   <button className="voteBtn" onClick={() => handleVote(c.id!)}>
                     Vote
@@ -279,7 +286,7 @@ export default function VotePage() {
         </div>
       )}
 
-      {/* Live Results */}
+      {/* Results Section */}
       {candidates.length > 0 && (
         <div className="resultsSection">
           <h2 className="chartTitle">Live Election Results</h2>
@@ -299,8 +306,7 @@ export default function VotePage() {
                   </span>
                 ))}
               </strong>
-              <br />
-              <br />
+              <br /><br />
               with {maxVotes} vote{maxVotes !== 1 ? "s" : ""}!
             </div>
           )}
@@ -314,7 +320,8 @@ export default function VotePage() {
         </div>
       )}
 
-<style jsx>{`
+      {/* STYLE REMAINS EXACTLY THE SAME */}
+      <style jsx>{`
         .page {
           min-height: 100dvh;
           padding: 230px 20px 40px;
