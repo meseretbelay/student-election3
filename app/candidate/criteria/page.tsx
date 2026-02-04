@@ -3,7 +3,15 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth, db } from "../../../lib/firebase";
-import { collection, query, where, onSnapshot, doc, updateDoc, Timestamp } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  doc,
+  updateDoc,
+  Timestamp,
+} from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { motion } from "framer-motion";
 
@@ -21,7 +29,6 @@ export default function CandidateCriteria() {
   const [submitting, setSubmitting] = useState(false);
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
 
-  // ===== IMAGE TO BASE64 =====
   const toBase64 = (file: File) =>
     new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
@@ -30,7 +37,6 @@ export default function CandidateCriteria() {
       reader.readAsDataURL(file);
     });
 
-  // ===== AUTH + LOAD CANDIDATE =====
   useEffect(() => {
     const unsubAuth = auth.onAuthStateChanged((user) => {
       if (!user) {
@@ -67,7 +73,6 @@ export default function CandidateCriteria() {
     return () => unsubAuth();
   }, [router]);
 
-  // ===== SUBMIT =====
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!candidateId || alreadySubmitted) return;
@@ -108,7 +113,6 @@ export default function CandidateCriteria() {
 
   return (
     <div className="page">
-      {/* ===== MAU Logo Centered ===== */}
       <img src="/images/mau.jpg" alt="MAU Logo" className="logo" />
 
       <motion.div
@@ -149,10 +153,20 @@ export default function CandidateCriteria() {
               required
             />
 
-            <textarea
-              placeholder="Experience"
+            <input
+              type="number"
+              placeholder="Experience (Years)"
               value={experience}
-              onChange={(e) => setExperience(e.target.value)}
+              min="0"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              onKeyDown={(e) =>
+                ["e", "E", "+", "-", "."].includes(e.key) &&
+                e.preventDefault()
+              }
+              onChange={(e) =>
+                setExperience(e.target.value.replace(/\D/g, ""))
+              }
               required
             />
 
@@ -163,21 +177,23 @@ export default function CandidateCriteria() {
         )}
       </motion.div>
 
-      {/* ===== Logout at Bottom ===== */}
-      <button className="logoutBtn" onClick={logout}>
-        Logout
-      </button>
+      {/* ✅ LOGOUT WRAPPER FOR SPACING */}
+      <div className="logoutWrapper">
+        <button className="logoutBtn" onClick={logout}>
+          Logout
+        </button>
+      </div>
 
       <style jsx>{`
         .page {
           min-height: 100vh;
           padding: 20px;
-          background: linear-gradient(135deg,#203a43,#2c5364);
+          background: linear-gradient(135deg, #203a43, #2c5364);
           display: flex;
           flex-direction: column;
           align-items: center;
           color: #fff;
-          font-family: 'Poppins', sans-serif;
+          font-family: "Poppins", sans-serif;
         }
 
         .logo {
@@ -191,24 +207,32 @@ export default function CandidateCriteria() {
         }
 
         .card {
-          background: rgba(255,255,255,0.15);
+          background: rgba(255, 255, 255, 0.15);
           padding: 40px;
           border-radius: 25px;
           width: 100%;
           max-width: 550px;
           color: white;
           text-align: center;
-          margin-bottom: 30px;
         }
 
-        textarea, input {
+        textarea,
+        input {
           width: 100%;
           padding: 14px;
           margin-bottom: 15px;
           border-radius: 15px;
           border: none;
-          background: rgba(255,255,255,0.2);
+          background: rgba(255, 255, 255, 0.2);
           color: white;
+          font-size: 1rem;
+          outline: none;
+        }
+
+        textarea::placeholder,
+        input::placeholder {
+          color: #ffffff;
+          opacity: 1;
         }
 
         button[type="submit"] {
@@ -216,47 +240,72 @@ export default function CandidateCriteria() {
           padding: 15px;
           border-radius: 20px;
           border: none;
-          background: linear-gradient(135deg,#36d1dc,#5b86e5);
+          background: linear-gradient(135deg, #36d1dc, #5b86e5);
           color: white;
           font-weight: bold;
           cursor: pointer;
+        }
+
+        .logoutWrapper {
+          margin-top: 40px;
         }
 
         .logoutBtn {
           padding: 12px 25px;
           border-radius: 20px;
           border: none;
-          background: linear-gradient(135deg,#ff416c,#ff4b2b);
+          background: linear-gradient(135deg, #ff416c, #ff4b2b);
           color: #fff;
           font-weight: bold;
           cursor: pointer;
-          box-shadow: 0 5px 20px rgba(255,65,108,0.5);
+          box-shadow: 0 5px 20px rgba(255, 65, 108, 0.5);
           transition: all 0.3s ease;
         }
 
         .logoutBtn:hover {
           transform: scale(1.05);
-          box-shadow: 0 8px 25px rgba(255,65,108,0.7);
+          box-shadow: 0 8px 25px rgba(255, 65, 108, 0.7);
         }
 
-        .status { text-align: center; margin-bottom: 15px; font-size: 1.5rem; }
-        .approved { color: #4caf50; font-weight: bold; }
-        .pending { color: #ffd700; font-weight: bold; }
+        .status {
+          text-align: center;
+          margin-bottom: 15px;
+          font-size: 1.5rem;
+        }
+
+        .approved {
+          color: #4caf50;
+          font-weight: bold;
+        }
+
+        .pending {
+          color: #ffd700;
+          font-weight: bold;
+        }
 
         .spinner {
           width: 60px;
           height: 60px;
-          border: 6px solid rgba(255,255,255,0.3);
+          border: 6px solid rgba(255, 255, 255, 0.3);
           border-top: 6px solid #36d1dc;
           border-radius: 50%;
           animation: spin 1s linear infinite;
         }
 
-        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
 
         @media (max-width: 768px) {
-          .logo { width: 100px; height: 100px; }
-          .card { padding: 25px; }
+          .logo {
+            width: 100px;
+            height: 100px;
+          }
+          .card {
+            padding: 25px;
+          }
         }
       `}</style>
     </div>

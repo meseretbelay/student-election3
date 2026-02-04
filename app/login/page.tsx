@@ -68,18 +68,15 @@ export default function LoginPage() {
             {loading ? "Logging in..." : "Login"}
           </button>
 
-          {/* ===== REGISTER ===== */}
           <p className="link">
             Don't have an account? <Link href="/register">Register</Link>
           </p>
 
-          {/* ===== CANDIDATE LOGIN (ADDED) ===== */}
           <p className="link candidateLink">
             Are you a candidate?{" "}
             <Link href="/candidate/login">Candidate Login</Link>
           </p>
 
-          {/* ===== ADMIN LOGIN ===== */}
           <p className="link adminLink">
             <Link href="/admin/login">→ Admin Login</Link>
           </p>
@@ -148,7 +145,13 @@ export default function LoginPage() {
 
         input {
           background: rgba(255, 255, 255, 0.25);
-          color: #fff;
+          color: #ffffff;
+        }
+
+        /* 🔥 PLACEHOLDER TEXT – STATIC WHITE */
+        input::placeholder {
+          color: #ffffff;
+          opacity: 1;
         }
 
         button {

@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -27,28 +26,23 @@ export default function AdminDashboard() {
   const [students, setStudents] = useState<ExtendedAppUser[]>([]);
   const [totalVoters, setTotalVoters] = useState(0);
   const [votedCount, setVotedCount] = useState(0);
-
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newImage, setNewImage] = useState<File | null>(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
   const [pendingAction, setPendingAction] = useState<{
     type: "add" | "edit" | "delete" | "reset" | "settings" | "status";
     data?: any;
   } | null>(null);
-
   const [settings, setSettings] = useState<ElectionSettings | null>(null);
   const [newStartDate, setNewStartDate] = useState("");
   const [newEndDate, setNewEndDate] = useState("");
-
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingCandidate, setEditingCandidate] = useState<Candidate | null>(null);
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
   const [editImage, setEditImage] = useState<string | File>("");
-
   const [showStudentsModal, setShowStudentsModal] = useState(false);
 
   // ================= AUTH =================
@@ -192,8 +186,42 @@ export default function AdminDashboard() {
 
   const now = Date.now();
   const isElectionEnded = settings && now >= settings.endDate.toMillis();
+
+  // Winner calculation (same as before)
   const maxVotes = Math.max(...candidates.map((c) => c.votes || 0), 0);
-  const winners = candidates.filter((c) => (c.votes || 0) === maxVotes && maxVotes > 0);
+  let primaryWinner = null;
+  let winnerDisplay = "No winner yet (no votes cast)";
+  let experienceNumber = "Not provided";
+  let tiedOthers = "";
+  if (maxVotes > 0) {
+    let tiedCandidates = candidates.filter(
+      (c) => (c.votes || 0) === maxVotes && c.status === "approved"
+    );
+    if (tiedCandidates.length === 1) {
+      primaryWinner = tiedCandidates[0];
+      winnerDisplay = primaryWinner.name;
+    } else if (tiedCandidates.length >= 2) {
+      tiedCandidates.sort((a, b) => {
+        const getExpNumber = (exp: string = "") => {
+          const cleaned = exp.replace(/[^0-9]/g, "");
+          const num = parseInt(cleaned, 10);
+          return isNaN(num) ? 0 : num;
+        };
+        const aNum = getExpNumber(a.criteria?.experience);
+        const bNum = getExpNumber(b.criteria?.experience);
+        if (aNum !== bNum) return bNum - aNum;
+        return a.name.localeCompare(b.name);
+      });
+      primaryWinner = tiedCandidates[0];
+      winnerDisplay = `${primaryWinner.name} (Tie-breaker: higher experience in criteria)`;
+      tiedOthers = tiedCandidates.slice(1).map((c) => c.name).join(", ");
+    }
+    if (primaryWinner && primaryWinner.criteria?.experience) {
+      const cleaned = primaryWinner.criteria.experience.replace(/[^0-9]/g, "");
+      const num = parseInt(cleaned, 10);
+      experienceNumber = isNaN(num) ? "Not provided" : num.toString();
+    }
+  }
 
   return (
     <div className="page">
@@ -213,20 +241,32 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* ================= DIVIDER ================= */}
           <div className="dividerLine"></div>
 
-          {/* ================= STATUS ================= */}
-          <div className="statusBox">
+          {/* ================= WELCOME + HORIZONTAL STATS ================= */}
+          <div className="statsSection">
             <div className="welcomeText">
               Welcome, <strong className="blue">{user.username}</strong>
             </div>
-            <div className="voteStatus">{votedCount} / {totalVoters} students voted</div>
-            <button className="viewStudentsBtn" onClick={() => setShowStudentsModal(true)}>👥 View All Students</button>
+
+            <div className="horizontalStats">
+              <div className="statCard">
+                <h3>Total Students</h3>
+                <p className="statNumber">{totalVoters}</p>
+              </div>
+              <div className="statCard">
+                <h3>Voted Students</h3>
+                <p className="statNumber">{votedCount}</p>
+              </div>
+              <div className="statCard clickable" onClick={() => setShowStudentsModal(true)}>
+                <h3>View All Students</h3>
+                <p className="statNumber">👥</p>
+              </div>
+            </div>
           </div>
 
           {/* ================= ELECTION SETTINGS ================= */}
-          <div className="settingsSection statusBox">
+          <div className="statusBox">
             <h2 className="sectionTitle">Election Dates</h2>
             <p>Current Start: {settings?.startDate?.toDate().toLocaleString() || "Not set"}</p>
             <p>Current End: {settings?.endDate?.toDate().toLocaleString() || "Not set"}</p>
@@ -238,7 +278,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* ================= ADD CANDIDATE ================= */}
-          <div className="addSection">
+          <div className="statusBox">
             <h2 className="sectionTitle">Add New Candidate</h2>
             <div className="form">
               <input placeholder="Candidate Name" value={newName} onChange={(e) => setNewName(e.target.value)} />
@@ -262,8 +302,6 @@ export default function AdminDashboard() {
                   <img src={c.image || "/images/default.jpg"} alt={c.name} className="candidateImg" />
                   <h2 className="blue">{c.name}</h2>
                   <p className="desc">{c.description}</p>
-
-                  {/* Show full criteria details only for pending candidates */}
                   {c.status === "pending" && c.criteria && (
                     <div className="criteriaSection">
                       <h3 className="criteriaTitle">Submitted Criteria</h3>
@@ -281,20 +319,16 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   )}
-
                   <p className="votes"><strong>{c.votes ?? 0}</strong> vote{(c.votes ?? 0) !== 1 ? "s" : ""}</p>
-
                   {c.status && c.status !== "pending" && (
                     <p className={`statusLabel ${c.status}`}>Status: {c.status.toUpperCase()}</p>
                   )}
-
                   {c.status === "pending" && (
                     <div className="pendingActions">
                       <button className="approveBtn" onClick={() => handleCandidateStatus(c, "approved")}>✅ Approve</button>
                       <button className="rejectBtn" onClick={() => handleCandidateStatus(c, "rejected")}>❌ Reject</button>
                     </div>
                   )}
-
                   <div className="actions">
                     <button className="editBtn" onClick={() => openEdit(c)}>✏️ Edit</button>
                     <button className="deleteBtn" onClick={() => openDelete(c.id!)}>🗑 Delete</button>
@@ -313,10 +347,32 @@ export default function AdminDashboard() {
             {isElectionEnded && (
               <div className="winnerBox">
                 🏆 <strong>ELECTION COMPLETE!</strong> 🏆<br /><br />
-                Winner{winners.length > 1 ? "s (Tie)" : ""}:<br />
-                <strong className="winnerName">{winners.map((w, i) => <span key={w.id}>{w.name}{i < winners.length - 1 ? " & " : ""}</span>)}</strong>
-                <br /><br />
-                with {maxVotes} vote{maxVotes !== 1 ? "s" : ""}!
+
+                {primaryWinner ? (
+                  <>
+                    <div className="winnerPhotoContainer">
+                      <img
+                        src={primaryWinner.image || "/images/default.jpg"}
+                        alt={`${primaryWinner.name} - Winner`}
+                        className="winnerPhoto"
+                      />
+                    </div>
+                    <strong className="winnerName">{winnerDisplay}</strong><br /><br />
+                    with <strong>{maxVotes}</strong> vote{maxVotes !== 1 ? "s" : ""}!<br /><br />
+                    <strong>Experience in criteria:</strong> {experienceNumber}
+                    {tiedOthers && (
+                      <>
+                        <br /><br />
+                        Other tied candidates: {tiedOthers}
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    Winner: <strong className="winnerName">No winner determined</strong><br /><br />
+                    (No votes were cast)
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -380,7 +436,7 @@ export default function AdminDashboard() {
         </>
       )}
 
-      {/* ================= STYLES (updated for criteria display) ================= */}
+      {/* ================= STYLES ================= */}
       <style jsx>{`
         .page { position: relative; min-height: 100dvh; padding: 230px 20px 40px; background: linear-gradient(270deg,#0f2027,#203a43,#2c5364); color:#fff; }
         .topBar { display:flex; align-items:center; justify-content:space-between; padding:5px 30px; background: rgba(255,255,255,0.05); backdrop-filter:blur(10px); position:fixed; top:0; left:0; right:0; z-index:1000; box-shadow:0 4px 20px rgba(0,0,0,0.3); }
@@ -391,16 +447,43 @@ export default function AdminDashboard() {
         .resetBtn { background:linear-gradient(135deg,#ff4444,#cc0000); color:white; }
         .logoutBtn { background:linear-gradient(135deg,#36d1dc,#5b86e5); color:white; }
         .dividerLine { position:fixed; top:150px; left:40px; right:40px; height:5px; background:linear-gradient(90deg,transparent,#36d1dc,transparent); border-radius:3px; box-shadow:0 0 20px rgba(54,209,220,0.8); z-index:999; }
-        .statusBox { text-align:center; max-width:600px; margin:0 auto 80px auto; padding:40px; background:rgba(255,255,255,0.08); border-radius:24px; backdrop-filter:blur(12px); box-shadow:0 15px 40px rgba(0,0,0,0.4); }
-        .welcomeText { font-size:2.2rem; margin-bottom:15px; font-weight:600; }
-        .welcomeText .blue { color:#36d1dc; font-weight:800; }
-        .voteStatus { font-size:2rem; font-weight:700; color:#36d1dc; margin-bottom: 20px; }
-        .viewStudentsBtn { padding:12px 24px; border-radius:14px; border:none; font-weight:700; cursor:pointer; transition:all 0.3s ease; font-size:1rem; background:linear-gradient(135deg,#4caf50,#2e7d32); color:white; }
-        .addSection { max-width:600px; margin:0 auto 100px auto; text-align:center; }
-        .sectionTitle { font-size:2.4rem; color:#36d1dc; margin-bottom:40px; font-weight:700; }
+
+        /* Stats Section with Welcome + Horizontal Cards */
+        .statsSection { max-width: 1200px; margin: 0 auto 80px auto; text-align: center; }
+        .welcomeText { font-size: 2.6rem; margin-bottom: 40px; font-weight: 700; }
+        .welcomeText .blue { color: #36d1dc; font-weight: 900; text-shadow: 0 0 10px rgba(54, 209, 220, 0.7); }
+        .horizontalStats { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; }
+        .statCard { 
+          background: rgba(255,255,255,0.08); 
+          backdrop-filter: blur(12px); 
+          border-radius: 20px; 
+          padding: 30px 40px; 
+          min-width: 220px; 
+          box-shadow: 0 10px 30px rgba(0,0,0,0.4); 
+          border: 1px solid rgba(54,209,220,0.3); 
+          transition: all 0.3s ease; 
+        }
+        .statCard:hover { transform: translateY(-8px); box-shadow: 0 20px 50px rgba(54,209,220,0.4); }
+        .statCard h3 { font-size: 1.4rem; color: #36d1dc; margin-bottom: 12px; font-weight: 600; }
+        .statCard .statNumber { font-size: 3.2rem; font-weight: 900; color: #ffd700; text-shadow: 0 4px 10px rgba(255,215,0,0.5); }
+        .statCard.clickable { cursor: pointer; }
+        .statCard.clickable:hover { background: rgba(255,255,255,0.15); }
+
+        .statusBox { 
+          text-align:center; 
+          max-width:600px; 
+          margin:0 auto 80px auto; 
+          padding:40px; 
+          background:rgba(255,255,255,0.08); 
+          border-radius:24px; 
+          backdrop-filter:blur(12px); 
+          box-shadow:0 15px 40px rgba(0,0,0,0.4); 
+        }
+        .sectionTitle { font-size:2.4rem; color:#36d1dc; margin-bottom:30px; font-weight:700; }
         .form { display:flex; flex-direction:column; gap:20px; }
         .form input { padding:18px; border-radius:16px; border:none; background:rgba(255,255,255,0.2); color:#fff; font-size:1.2rem; }
         .addBtn { padding:18px; border:none; border-radius:16px; background:linear-gradient(135deg,#36d1dc,#5b86e5); color:white; font-weight:700; font-size:1.3rem; cursor:pointer; transition:all 0.3s ease; }
+        .shortBtn { padding:14px 28px; font-size:1.1rem; align-self: center; }
         .grid { display:flex; flex-wrap:wrap; gap:40px; justify-content:center; margin:60px 0; }
         .cardWrap { padding:10px; border-radius:24px; background:linear-gradient(135deg,#36d1dc,#5b86e5); }
         .card { width:340px; background:rgba(255,255,255,0.15); border-radius:20px; padding:16px; display:flex; flex-direction:column; align-items:center; text-align:center; backdrop-filter:blur(12px); }
@@ -414,8 +497,10 @@ export default function AdminDashboard() {
         .resultsSection { max-width:1100px; margin:100px auto 60px; padding:50px; background:rgba(255,255,255,0.1); border-radius:28px; backdrop-filter:blur(15px); text-align:center; }
         .chartTitle { font-size:2.6rem; color:#36d1dc; margin-bottom:40px; }
         .chartContainer { max-width:900px; margin:0 auto; height:450px; }
-        .winnerBox { margin-top:70px; padding:60px; background:rgba(255,215,0,0.25); border-radius:30px; font-size:3rem; color:#ffd700; border:4px dashed #ffd700; }
-        .winnerName { color:#36d1dc; font-size:3.4rem; }
+        .winnerBox { margin-top:70px; padding:60px; background:rgba(255,215,0,0.25); border-radius:30px; font-size:3rem; color:#ffd700; border:4px dashed #ffd700; text-align: center; }
+        .winnerName { color:#36d1dc; font-size:3.4rem; display: block; margin: 10px 0; }
+        .winnerPhotoContainer { margin: 0 auto 30px; width: 220px; height: 220px; }
+        .winnerPhoto { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 6px solid #ffd700; box-shadow: 0 15px 40px rgba(255, 215, 0, 0.5); background: rgba(255, 255, 255, 0.1); }
         .overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; z-index: 2000; }
         .modal { background: #1e3a52; padding: 40px; border-radius: 20px; width: 90%; max-width: 600px; text-align: center; color: white; border: 2px solid #36d1dc; }
         .tableContainer { max-height: 300px; overflow-y: auto; margin: 20px 0; }
@@ -425,43 +510,11 @@ export default function AdminDashboard() {
         .approveBtn, .rejectBtn { flex: 1; padding: 10px; border-radius: 10px; border: none; cursor: pointer; color: white; font-weight: bold; }
         .approveBtn { background: #4caf50; }
         .rejectBtn { background: #f44336; }
-
-        /* New styles for criteria display (only visible for pending) */
-        .criteriaSection {
-          width: 100%;
-          margin: 20px 0;
-          padding: 15px;
-          background: rgba(0,0,0,0.25);
-          border-radius: 12px;
-          border: 1px solid rgba(54, 209, 220, 0.3);
-        }
-        .criteriaTitle {
-          font-size: 1.3rem;
-          color: #36d1dc;
-          margin-bottom: 15px;
-          text-align: left;
-        }
-        .criteriaItem {
-          margin-bottom: 15px;
-          text-align: left;
-        }
-        .criteriaItem strong {
-          display: block;
-          color: #ffd700;
-          margin-bottom: 5px;
-          font-size: 1.1rem;
-        }
-        .criteriaText {
-          white-space: pre-line;
-          font-size: 0.95rem;
-          line-height: 1.5;
-          color: #fff;
-          max-height: 120px;
-          overflow-y: auto;
-          padding: 8px;
-          background: rgba(255,255,255,0.05);
-          border-radius: 8px;
-        }
+        .criteriaSection { width: 100%; margin: 20px 0; padding: 15px; background: rgba(0,0,0,0.25); border-radius: 12px; border: 1px solid rgba(54, 209, 220, 0.3); }
+        .criteriaTitle { font-size: 1.3rem; color: #36d1dc; margin-bottom: 15px; text-align: left; }
+        .criteriaItem { margin-bottom: 15px; text-align: left; }
+        .criteriaItem strong { display: block; color: #ffd700; margin-bottom: 5px; font-size: 1.1rem; }
+        .criteriaText { white-space: pre-line; font-size: 0.95rem; line-height: 1.5; color: #fff; max-height: 120px; overflow-y: auto; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 8px; }
 
         @media (max-width: 768px) {
           .page { padding: 30px 12px 40px; }
@@ -469,11 +522,22 @@ export default function AdminDashboard() {
           .logoImg { width: 80px; height: 80px; }
           .mainTitle { font-size: 1.6rem; padding-left: 0; }
           .dividerLine { display: none; }
-          .statusBox { margin-top: 20px; padding: 25px 15px; }
-          .welcomeText { font-size: 1.5rem; }
+          .statsSection { margin-bottom: 60px; }
+          .welcomeText { font-size: 2rem; margin-bottom: 30px; }
+          .horizontalStats { flex-direction: column; gap: 20px; }
+          .statCard { min-width: auto; padding: 25px 20px; }
+          .statCard .statNumber { font-size: 2.6rem; }
+          .statusBox { margin: 0 auto 60px auto; padding: 25px 15px; }
+          .sectionTitle { font-size: 2rem; margin-bottom: 25px; }
+          .form input { font-size: 1rem; padding: 14px; }
+          .addBtn { font-size: 1.1rem; padding: 14px; }
           .grid { flex-direction: column; align-items: center; }
           .cardWrap { width: 100%; max-width: 360px; }
           .criteriaSection { padding: 12px; }
+          .winnerPhotoContainer { width: 160px; height: 160px; margin-bottom: 20px; }
+          .winnerPhoto { border-width: 4px; }
+          .winnerName { font-size: 2.4rem; }
+          .winnerBox { font-size: 1.8rem; padding: 40px 20px; }
         }
       `}</style>
     </div>
