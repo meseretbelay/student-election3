@@ -22,8 +22,8 @@ export default function CandidateRegisterPage() {
     }
     const numPart = trimmed.slice(3);
     const num = parseInt(numPart, 10);
-    if (isNaN(num) || num < 1400 || num > 1500) {
-      return "Only student IDs from MAU1400 to MAU1500 are allowed for registration.";
+    if (isNaN(num) || num < 1400 || num > 1899) {
+      return "Only student IDs from MAU1400 to MAU1899 are allowed for registration.";
     }
     return null;
   };
@@ -41,20 +41,17 @@ export default function CandidateRegisterPage() {
     e.preventDefault();
     setError("");
 
-    // Basic required fields
     if (!username.trim() || !studentId.trim() || !email.trim() || !password) {
       setError("All fields are required");
       return;
     }
 
-    // Student ID validation (only MAU1400–MAU1500 allowed)
     const sidError = validateStudentId(studentId);
     if (sidError) {
       setError(sidError);
       return;
     }
 
-    // Strong password validation
     const pwdError = validatePassword(password);
     if (pwdError) {
       setError(pwdError);
@@ -63,7 +60,6 @@ export default function CandidateRegisterPage() {
 
     setLoading(true);
     try {
-      // Pass the original (non-upper-cased) studentId, trimmed
       await registerCandidate(username.trim(), studentId.trim(), email.trim(), password.trim());
       alert("Candidate registered successfully! Please login to continue.");
       router.push("/candidate/login");
@@ -126,6 +122,10 @@ export default function CandidateRegisterPage() {
           <p className="link">
             Already registered? <Link href="/candidate/login">Login here</Link>
           </p>
+
+          <p className="note">
+            Only MAU students with ID from <strong>MAU1400</strong> to <strong>MAU1899</strong> can register.
+          </p>
         </form>
       </motion.div>
 
@@ -172,6 +172,7 @@ export default function CandidateRegisterPage() {
           object-fit: cover;
           border: 4px solid #36d1dc;
           margin-bottom: 15px;
+          box-shadow: 0 8px 25px rgba(54, 209, 220, 0.3);
         }
 
         h1 {
@@ -242,6 +243,17 @@ export default function CandidateRegisterPage() {
           text-decoration: underline;
         }
 
+        .note {
+          font-size: 0.95rem;
+          text-align: center;
+          color: #ccc;
+          margin-top: 10px;
+        }
+
+        .note strong {
+          color: #36d1dc;
+        }
+
         @media (max-width: 480px) {
           .card {
             padding: 35px 20px;
@@ -260,6 +272,9 @@ export default function CandidateRegisterPage() {
             height: 50px;
             font-size: 1rem;
             border-radius: 18px;
+          }
+          .note {
+            font-size: 0.85rem;
           }
         }
       `}</style>

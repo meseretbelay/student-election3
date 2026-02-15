@@ -5,13 +5,18 @@ export type Candidate = {
   image: string;
   votes: number;
   status: "pending" | "approved" | "rejected";
+  isAdminAdded?: boolean;  // Flag to identify admin-added candidates
+  addedBy?: "admin" | "candidate";
   criteria?: {
     manifesto?: string;
     vision?: string;
     experience?: string;
+    department?: string;
+    cgpa?: string;
+    year?: string;
     submittedAt?: any;
   };
-  uid?: string;          // link to auth user (candidate themselves)
+  uid?: string;
   studentId?: string;
   email?: string;
 };
@@ -23,5 +28,5 @@ export type AppUser = {
   email: string;
   hasVoted: boolean;
   isAdmin: boolean;
-  isCandidate?: boolean;    // NEW flag
+  isCandidate?: boolean;
 };

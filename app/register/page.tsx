@@ -1,13 +1,12 @@
 "use client";
-
+ 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { registerUser } from "../../lib/firebaseFunctions";
 import Link from "next/link";
 import { motion } from "framer-motion";
-// Removed unnecessary imports for query since check is moved to registerUser
 import { db } from "../../lib/firebase";
-
+ 
 export default function RegisterPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
@@ -16,54 +15,54 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
+ 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-
+ 
     const idUpper = studentId.trim().toUpperCase();
     if (!idUpper.startsWith("MAU")) {
       setError("Invalid Student ID. Must start with 'MAU'.");
       setLoading(false);
       return;
     }
-
+ 
     const numPart = idUpper.substring(3);
     if (!/^\d{4}$/.test(numPart)) {
       setError("Invalid Student ID format. Must be MAU followed by 4 digits (e.g., MAU1400).");
       setLoading(false);
       return;
     }
-
+ 
     const idNumber = parseInt(numPart, 10);
-    if (idNumber < 1400 || idNumber > 1500) {
-      setError("You are not a valid MAU student. Student ID must be between MAU1400 and MAU1500.");
+    if (idNumber < 1400 || idNumber > 1899) {
+      setError("You are not a valid MAU student. Student ID must be between MAU1400 and MAU1899.");
       setLoading(false);
       return;
     }
-
+ 
     const pass = password.trim();
     if (pass.length < 8) {
       setError("Password must be at least 8 characters long.");
       setLoading(false);
       return;
     }
-
+ 
     const hasUpper = /[A-Z]/.test(pass);
     const hasLower = /[a-z]/.test(pass);
     const hasNumber = /\d/.test(pass);
     const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(pass);
-
+ 
     if (!hasUpper || !hasLower || !hasNumber || !hasSpecial) {
       setError("Password must include at least one uppercase letter, one lowercase letter, one number, and one special character.");
       setLoading(false);
       return;
     }
-
+ 
     try {
-      // Removed client-side duplicate check - now handled in registerUser
       await registerUser(username.trim(), idUpper, email.trim(), pass);
+      alert("Registration successful! A verification email has been sent to your email. Please click the link in the email to verify your account before logging in.");
       router.push("/login");
     } catch (err: any) {
       setError(err.message || "Registration failed");
@@ -71,7 +70,7 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
-
+ 
   return (
     <div className="page">
       <motion.div
@@ -83,9 +82,9 @@ export default function RegisterPage() {
         <form className="card" onSubmit={handleRegister}>
           <img src="/images/mau.jpg" alt="MAU Logo" className="logo" />
           <h1>Student Election Register</h1>
-
+ 
           {error && <p className="error">{error}</p>}
-
+ 
           <input
             placeholder="Username"
             value={username}
@@ -93,7 +92,7 @@ export default function RegisterPage() {
             required
             disabled={loading}
           />
-
+ 
           <input
             placeholder="Student ID (e.g., MAU1425)"
             value={studentId}
@@ -101,7 +100,7 @@ export default function RegisterPage() {
             required
             disabled={loading}
           />
-
+ 
           <input
             type="email"
             placeholder="Email"
@@ -110,7 +109,7 @@ export default function RegisterPage() {
             required
             disabled={loading}
           />
-
+ 
           <input
             type="password"
             placeholder="Password"
@@ -119,21 +118,21 @@ export default function RegisterPage() {
             required
             disabled={loading}
           />
-
+ 
           <button type="submit" disabled={loading}>
             {loading ? "Registering..." : "Register"}
           </button>
-
+ 
           <p className="link">
             Already have an account? <Link href="/login">Login</Link>
           </p>
-
+ 
           <p className="note">
-            Only MAU students with ID from <strong>MAU1400</strong> to <strong>MAU1500</strong> can register.
+            Only MAU students with ID from <strong>MAU1400</strong> to <strong>MAU1899</strong> can register.
           </p>
         </form>
       </motion.div>
-
+ 
       <style jsx>{`
         .page {
           min-height: 100vh;
@@ -265,7 +264,6 @@ export default function RegisterPage() {
           color: #36d1dc;
         }
 
-        /* ===== MOBILE RESPONSIVE ===== */
         @media (max-width: 480px) {
           .card {
             padding: 35px 20px;
@@ -294,7 +292,6 @@ export default function RegisterPage() {
           }
         }
 
-        /* ===== TABLET RESPONSIVE ===== */
         @media (max-width: 768px) {
           .card {
             padding: 40px 25px;

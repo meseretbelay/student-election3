@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { auth, db } from "../../lib/firebase";
 import {
   submitVote,
@@ -15,6 +15,230 @@ import { collection, doc, onSnapshot, Unsubscribe, Timestamp } from "firebase/fi
 type ElectionSettings = {
   startDate: Timestamp;
   endDate: Timestamp;
+};
+
+// Vote Confirmation Modal Component
+const VoteConfirmModal = ({
+  isOpen,
+  candidate,
+  onConfirm,
+  onCancel,
+}: {
+  isOpen: boolean;
+  candidate: Candidate | null;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) => {
+  if (!isOpen || !candidate) return null;
+
+  return (
+    <AnimatePresence>
+      <div className="modal-overlay">
+        <motion.div 
+          className="vote-confirm-modal"
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.8, opacity: 0 }}
+          transition={{ type: "spring", damping: 20 }}
+        >
+          <div className="modal-icon">🗳️</div>
+          <h3 className="modal-title">Confirm Your Vote</h3>
+          
+          <div className="candidate-preview">
+            <img 
+              src={candidate.image || "/images/default-user.png"} 
+              alt={candidate.name}
+              className="preview-image"
+            />
+            <div className="preview-details">
+              <h4>{candidate.name}</h4>
+              <p>{candidate.description || "No description provided"}</p>
+            </div>
+          </div>
+
+          <p className="modal-message">
+            Are you sure you want to cast your vote for this candidate?<br />
+            <strong>This action cannot be undone.</strong>
+          </p>
+
+          <div className="modal-actions">
+            <button 
+              className="modal-btn cancel"
+              onClick={onCancel}
+            >
+              Cancel
+            </button>
+            <button 
+              className="modal-btn confirm"
+              onClick={onConfirm}
+            >
+              Yes, Vote Now
+            </button>
+          </div>
+        </motion.div>
+      </div>
+
+      <style jsx>{`
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.8);
+          backdrop-filter: blur(8px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 9999;
+        }
+
+        .vote-confirm-modal {
+          background: linear-gradient(135deg, #1e3a52, #162b3c);
+          padding: 40px;
+          border-radius: 24px;
+          width: 90%;
+          max-width: 500px;
+          text-align: center;
+          border: 2px solid #36d1dc;
+          box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-icon {
+          font-size: 4rem;
+          margin-bottom: 20px;
+          animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+
+        .modal-title {
+          color: white;
+          font-size: 2rem;
+          font-weight: 700;
+          margin-bottom: 25px;
+          background: linear-gradient(135deg, #fff, #36d1dc);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        .candidate-preview {
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          background: rgba(255, 255, 255, 0.05);
+          padding: 20px;
+          border-radius: 16px;
+          margin-bottom: 25px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .preview-image {
+          width: 80px;
+          height: 80px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 3px solid #36d1dc;
+        }
+
+        .preview-details {
+          flex: 1;
+          text-align: left;
+        }
+
+        .preview-details h4 {
+          color: #36d1dc;
+          font-size: 1.3rem;
+          font-weight: 600;
+          margin-bottom: 5px;
+        }
+
+        .preview-details p {
+          color: rgba(255, 255, 255, 0.7);
+          font-size: 0.95rem;
+          line-height: 1.4;
+        }
+
+        .modal-message {
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 1.1rem;
+          line-height: 1.6;
+          margin-bottom: 30px;
+        }
+
+        .modal-message strong {
+          color: #ffd700;
+        }
+
+        .modal-actions {
+          display: flex;
+          gap: 15px;
+        }
+
+        .modal-btn {
+          flex: 1;
+          padding: 16px;
+          border: none;
+          border-radius: 12px;
+          font-weight: 700;
+          font-size: 1rem;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .modal-btn.cancel {
+          background: rgba(255, 255, 255, 0.1);
+          color: white;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .modal-btn.cancel:hover {
+          background: rgba(255, 255, 255, 0.2);
+          transform: translateY(-2px);
+        }
+
+        .modal-btn.confirm {
+          background: linear-gradient(135deg, #36d1dc, #5b86e5);
+          color: white;
+        }
+
+        .modal-btn.confirm:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 10px 20px rgba(54, 209, 220, 0.3);
+        }
+
+        @media (max-width: 480px) {
+          .vote-confirm-modal {
+            padding: 30px 20px;
+          }
+
+          .modal-title {
+            font-size: 1.6rem;
+          }
+
+          .candidate-preview {
+            flex-direction: column;
+            text-align: center;
+          }
+
+          .preview-details {
+            text-align: center;
+          }
+
+          .modal-actions {
+            flex-direction: column;
+          }
+
+          .modal-message {
+            font-size: 1rem;
+          }
+        }
+      `}</style>
+    </AnimatePresence>
+  );
 };
 
 export default function VotePage() {
@@ -31,6 +255,10 @@ export default function VotePage() {
   const [unsubUsers, setUnsubUsers] = useState<Unsubscribe | null>(null);
   const [unsubCandidates, setUnsubCandidates] = useState<Unsubscribe | null>(null);
   const [unsubSettings, setUnsubSettings] = useState<Unsubscribe | null>(null);
+  
+  // Vote confirmation modal state
+  const [showVoteConfirm, setShowVoteConfirm] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
 
   // ------------------ AUTH ------------------
   useEffect(() => {
@@ -141,11 +369,22 @@ export default function VotePage() {
     }
   };
 
-  // ------------------ VOTE ------------------
-  const handleVote = async (candidateId: string) => {
-    if (!user || user.hasVoted || !isVotingOpen) return;
+  // ------------------ VOTE CONFIRMATION ------------------
+  const handleVoteClick = (candidate: Candidate) => {
+    setSelectedCandidate(candidate);
+    setShowVoteConfirm(true);
+  };
+
+  const handleVoteConfirm = async () => {
+    if (!selectedCandidate || !user || user.hasVoted || !isVotingOpen) {
+      setShowVoteConfirm(false);
+      return;
+    }
+
+    setShowVoteConfirm(false);
+    
     try {
-      await submitVote(user.uid, candidateId);
+      await submitVote(user.uid, selectedCandidate.id!);
       setUser((prev) => (prev ? { ...prev, hasVoted: true } : null));
       setMessage({ type: "success", text: "Thank you for voting! 🎉 Your vote has been recorded." });
       setTimeout(() => setMessage(null), 6000);
@@ -153,6 +392,11 @@ export default function VotePage() {
       setMessage({ type: "error", text: err.message || "Voting failed. Please try again." });
       setTimeout(() => setMessage(null), 6000);
     }
+  };
+
+  const handleVoteCancel = () => {
+    setShowVoteConfirm(false);
+    setSelectedCandidate(null);
   };
 
   if (loading) {
@@ -224,6 +468,14 @@ export default function VotePage() {
 
   return (
     <div className="page">
+      {/* Vote Confirmation Modal */}
+      <VoteConfirmModal
+        isOpen={showVoteConfirm}
+        candidate={selectedCandidate}
+        onConfirm={handleVoteConfirm}
+        onCancel={handleVoteCancel}
+      />
+
       {/* Top Bar */}
       <div className="topBar">
         <div className="topLeftLogo">
@@ -297,7 +549,10 @@ export default function VotePage() {
                   <strong>{c.votes || 0}</strong> vote{c.votes !== 1 ? "s" : ""}
                 </p>
                 {!user.hasVoted && isVotingOpen ? (
-                  <button className="voteBtn" onClick={() => handleVote(c.id!)}>
+                  <button 
+                    className="voteBtn" 
+                    onClick={() => handleVoteClick(c)}
+                  >
                     Vote
                   </button>
                 ) : (

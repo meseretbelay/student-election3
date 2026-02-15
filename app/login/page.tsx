@@ -130,6 +130,7 @@ export default function LoginPage() {
         h1 {
           font-size: 2.2rem;
           font-weight: 700;
+          margin-bottom: 20px;
         }
 
         input,
@@ -148,7 +149,6 @@ export default function LoginPage() {
           color: #ffffff;
         }
 
-        /* 🔥 PLACEHOLDER TEXT – STATIC WHITE */
         input::placeholder {
           color: #ffffff;
           opacity: 1;
@@ -159,6 +159,11 @@ export default function LoginPage() {
           color: white;
           font-weight: 700;
           cursor: pointer;
+        }
+
+        button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
         }
 
         .error {
@@ -195,6 +200,10 @@ export default function LoginPage() {
           }
           h1 {
             font-size: 1.7rem;
+          }
+          input, button {
+            height: 50px;
+            font-size: 1rem;
           }
         }
       `}</style>
