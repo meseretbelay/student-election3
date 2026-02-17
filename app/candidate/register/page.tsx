@@ -8,12 +8,14 @@ import { motion } from "framer-motion";
 
 export default function CandidateRegisterPage() {
   const router = useRouter();
+
   const [username, setUsername] = useState("");
   const [studentId, setStudentId] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
 
   const validateStudentId = (sid: string): string | null => {
     const trimmed = sid.trim().toUpperCase();
@@ -23,17 +25,8 @@ export default function CandidateRegisterPage() {
     const numPart = trimmed.slice(3);
     const num = parseInt(numPart, 10);
     if (isNaN(num) || num < 1400 || num > 1899) {
-      return "Only student IDs from MAU1400 to MAU1899 are allowed for registration.";
+      return "Only student IDs from MAU1400 to MAU1899 are allowed.";
     }
-    return null;
-  };
-
-  const validatePassword = (pwd: string): string | null => {
-    if (pwd.length < 8) return "Password must be at least 8 characters long.";
-    if (!/[A-Z]/.test(pwd)) return "Password must contain at least one uppercase letter.";
-    if (!/[a-z]/.test(pwd)) return "Password must contain at least one lowercase letter.";
-    if (!/[0-9]/.test(pwd)) return "Password must contain at least one number.";
-    if (!/[^A-Za-z0-9]/.test(pwd)) return "Password must contain at least one special character (e.g., !@#$%).";
     return null;
   };
 
@@ -41,8 +34,8 @@ export default function CandidateRegisterPage() {
     e.preventDefault();
     setError("");
 
-    if (!username.trim() || !studentId.trim() || !email.trim() || !password) {
-      setError("All fields are required");
+    if (!username || !studentId || !email || !password) {
+      setError("All fields are required.");
       return;
     }
 
@@ -52,19 +45,19 @@ export default function CandidateRegisterPage() {
       return;
     }
 
-    const pwdError = validatePassword(password);
-    if (pwdError) {
-      setError(pwdError);
-      return;
-    }
-
     setLoading(true);
+
     try {
-      await registerCandidate(username.trim(), studentId.trim(), email.trim(), password.trim());
-      alert("Candidate registered successfully! Please login to continue.");
-      router.push("/candidate/login");
+      await registerCandidate(
+        username.trim(),
+        studentId.trim().toUpperCase(),
+        email.trim(),
+        password.trim()
+      );
+
+      setShowPopup(true);
     } catch (err: any) {
-      setError(err.message || "Registration failed. Please try again.");
+      setError(err.message || "Registration failed.");
     } finally {
       setLoading(false);
     }
@@ -74,9 +67,9 @@ export default function CandidateRegisterPage() {
     <div className="page">
       <motion.div
         className="cardWrapper"
-        initial={{ opacity: 0, y: 50 }}
+        initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+        transition={{ duration: 0.5 }}
       >
         <form className="card" onSubmit={handleRegister}>
           <img src="/images/mau.jpg" alt="MAU Logo" className="logo" />
@@ -88,30 +81,29 @@ export default function CandidateRegisterPage() {
             placeholder="Full Name"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            required
             disabled={loading}
           />
+
           <input
-            placeholder="Student ID (e.g., MAU1400)"
+            placeholder="Student ID (e.g., MAU1450)"
             value={studentId}
             onChange={(e) => setStudentId(e.target.value)}
-            required
             disabled={loading}
           />
+
           <input
             type="email"
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            required
             disabled={loading}
           />
+
           <input
             type="password"
-            placeholder="Password (strong: 8+ chars, upper, lower, number, special)"
+            placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            required
             disabled={loading}
           />
 
@@ -122,12 +114,29 @@ export default function CandidateRegisterPage() {
           <p className="link">
             Already registered? <Link href="/candidate/login">Login here</Link>
           </p>
-
-          <p className="note">
-            Only MAU students with ID from <strong>MAU1400</strong> to <strong>MAU1899</strong> can register.
-          </p>
         </form>
       </motion.div>
+
+      {showPopup && (
+        <div className="popupOverlay">
+          <div className="popupCard">
+            <h2>🎉 Registration Successful!</h2>
+            <p>
+              Your candidate account has been created.<br />
+              Please login to continue.
+            </p>
+
+            <button
+              onClick={() => {
+                setShowPopup(false);
+                router.push("/candidate/login");
+              }}
+            >
+              Go to Login
+            </button>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .page {
@@ -135,147 +144,107 @@ export default function CandidateRegisterPage() {
           display: flex;
           justify-content: center;
           align-items: center;
-          background: linear-gradient(270deg, #0f2027, #203a43, #2c5364);
-          background-size: 600% 600%;
-          animation: gradient 15s ease infinite;
-        }
-
-        @keyframes gradient {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-
-        .cardWrapper {
-          width: 100%;
-          max-width: 500px;
+          background: linear-gradient(135deg, #203a43, #2c5364);
         }
 
         .card {
-          width: 100%;
           background: rgba(255, 255, 255, 0.12);
           padding: 50px;
           border-radius: 25px;
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 18px;
           align-items: center;
           color: #fff;
-          backdrop-filter: blur(25px);
-          box-shadow: 0 35px 70px rgba(0, 0, 0, 0.5);
+          backdrop-filter: blur(20px);
         }
 
         .logo {
-          width: 130px;
-          height: 130px;
+          width: 120px;
+          height: 120px;
           border-radius: 50%;
           object-fit: cover;
-          border: 4px solid #36d1dc;
-          margin-bottom: 15px;
-          box-shadow: 0 8px 25px rgba(54, 209, 220, 0.3);
+          margin-bottom: 10px;
         }
 
-        h1 {
-          font-size: 2.2rem;
-          font-weight: 700;
-          margin-bottom: 20px;
-        }
-
-        input,
-        button {
+        input, button {
           width: 100%;
           max-width: 400px;
-          height: 55px;
-          padding: 0 20px;
-          border-radius: 22px;
-          font-size: 1.1rem;
+          height: 50px;
+          border-radius: 20px;
           border: none;
-          outline: none;
+          padding: 0 15px;
+          font-size: 1rem;
         }
 
         input {
-          background: rgba(255, 255, 255, 0.25);
+          background: rgba(255,255,255,0.2);
           color: #fff;
         }
 
+        /* ✅ Placeholder changed to black */
         input::placeholder {
-          color: #f0f0f0;
+          color: white;
+          opacity: 1;
         }
 
         button {
           background: linear-gradient(135deg, #36d1dc, #5b86e5);
-          color: #fff;
-          font-weight: 700;
+          color: white;
+          font-weight: bold;
           cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        button:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
-        }
-
-        button:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
         }
 
         .error {
           color: #ff6b6b;
           text-align: center;
-          margin: 0;
-          font-size: 1rem;
-          line-height: 1.4;
         }
 
-        .link {
-          margin-top: 15px;
+        .popupOverlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.6);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          animation: fadeIn 0.3s ease;
+        }
+
+        .popupCard {
+          background: white;
+          padding: 40px;
+          border-radius: 20px;
           text-align: center;
+          width: 90%;
+          max-width: 400px;
+          animation: scaleIn 0.3s ease;
         }
 
-        .link a {
-          color: #36d1dc;
-          font-weight: 600;
-          text-decoration: none;
+        .popupCard h2 {
+          color: #203a43;
+          margin-bottom: 15px;
         }
 
-        .link a:hover {
-          text-decoration: underline;
+        .popupCard p {
+          color: #555;
+          margin-bottom: 25px;
         }
 
-        .note {
-          font-size: 0.95rem;
-          text-align: center;
-          color: #ccc;
-          margin-top: 10px;
+        .popupCard button {
+          background: linear-gradient(135deg, #36d1dc, #5b86e5);
+          color: white;
+          border-radius: 20px;
+          height: 45px;
         }
 
-        .note strong {
-          color: #36d1dc;
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
 
-        @media (max-width: 480px) {
-          .card {
-            padding: 35px 20px;
-            border-radius: 20px;
-            gap: 15px;
-          }
-          .logo {
-            width: 100px;
-            height: 100px;
-          }
-          h1 {
-            font-size: 1.8rem;
-          }
-          input,
-          button {
-            height: 50px;
-            font-size: 1rem;
-            border-radius: 18px;
-          }
-          .note {
-            font-size: 0.85rem;
-          }
+        @keyframes scaleIn {
+          from { transform: scale(0.8); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
         }
       `}</style>
     </div>
